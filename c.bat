@@ -1,0 +1,1 @@
+cl /EHsc /LD /DLL /W2 /O2 /GL /Gy server.cpp helpers.cpp auth.cpp sha2.cpp

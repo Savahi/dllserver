@@ -1,0 +1,129 @@
+<html>
+
+<head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<title>Web SP Main Menu</title>
+
+<link rel="stylesheet" type="text/css" href="/styles.css">
+
+<script type="text/javascript" src="/scripts.js"></script>
+<script type="text/javascript" src="/server.js"></script>
+
+</head>
+
+<body>
+
+<div id='header'>
+	<div id='header-lang'><span id='text-lang'>en</span></div>
+	<!--<div id='header-logged'><span id='text-user-name'></span> :: <a href='/logout' id='#a-logout'><span id='text-logout'></span> &#10132;</a></div>-->
+	<div id='header-logged'><span id='text-user-name'></span> :: <a href='/logout' id='a-logout'><span id='text-logout'></span> &#10132;</a></div>
+</div>
+
+
+<div class='main'>
+	<div id='connectionError'><span id='text-connection-error'></span></div>
+	<h1 id='text-index-page-title'>Web SP Main Menu</h1>
+	<div class='custom-cell-container'>
+		<div class='custom-cell custom-cell-by3'> 
+			<h2 id='text-gantt-charts'>GANTT CHARTS</h2>
+			<div id='gantt'>
+				<div id="loader" class="loader" style="display:inline-block;"></div>
+			</div>
+		</div>
+		<div class='custom-cell custom-cell-by3'> 
+			<h2 id='text-input-tables'>INPUT TABLES</h2>
+			<div id='input'>
+				<div id="loader" class="loader" style="display:inline-block;"></div>
+			</div>
+		</div>
+		<div class='custom-cell custom-cell-by3'> 
+			<h2 id='text-dashboards'>DASHBOARDS</h2>
+			<div id='dashboard'>
+				<div id="loader" class="loader" style="display:inline-block;"></div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+
+function loadContents() {
+	let sectionIds = [ 'gantt', 'input', 'dashboard' ]
+	let url = '/contents';
+	let sectionContainerEl = null;
+	fetch( url ).then(data => data.json()).then( function(data) { 
+		for( let i = 0 ; i < sectionIds.length ; i++ ) {
+			let sectionId = sectionIds[i];
+			if( !(sectionId in data) )
+				continue;
+			sectionContainerEl = document.getElementById(sectionId);
+			if( !sectionContainerEl ) 
+				continue;
+		
+			let html = '';
+			let d = data[sectionId];
+			if( d.length == 0 ) {
+				sectionContainerEl.innerHTML = '...';			
+				continue;
+			}
+			sectionContainerEl.innerHTML = '';
+			for( let j = 0 ; j < d.length ; j++ ) {
+				let aEl = document.createElement('a');
+				aEl.appendChild( document.createTextNode(d[j].title) );
+				let href = `/${sectionId}/index.html?${d[j].id}`;
+				aEl.href = href;
+				aEl.onclick = function(e) { e.preventDefault(); checkAuthorizedAndProceed( href ); };
+				sectionContainerEl.appendChild(aEl);
+				sectionContainerEl.appendChild(document.createElement('br'));
+			}
+			//elem.innerHTML=html; 
+			
+		}
+	}).catch( function(e) { console.log(e); } );
+}
+
+
+function checkAvailabilityAndProceed(url) {	
+	displayErrorMessage('connectionError', false);
+	checkServer( 2, function(available, notUsed) {
+		if( !available ) {
+			displayErrorMessage('connectionError');
+		} else {
+			window.location.href = url;
+		}
+	});	
+}
+
+
+function checkAuthorizedAndProceed(url) {	
+	displayErrorMessage('connectionError', false);
+	checkServer( 2, function(available, authorized) {
+		if( !available ) {
+			displayErrorMessage('connectionError');
+		} else {
+			if( !authorized )
+				window.location.href = '/';
+			else
+				window.open(url);
+		}
+	});	
+}
+
+window.addEventListener('load', function() { 
+	let logoutEl = document.getElementById('a-logout');
+	if( logoutEl ) {
+		logoutEl.onclick = function(e) { e.preventDefault(); checkAvailabilityAndProceed('/logout'); };		
+	}
+});
+
+window.addEventListener( 'load', function() { loadContents(); } );
+
+window.addEventListener('load', function() { handleLang(); });
+
+</script>
+
+</body>
+
+</html>

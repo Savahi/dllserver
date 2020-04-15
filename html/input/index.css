@@ -1,0 +1,256 @@
+:root {
+	--header-height:40px;
+	--half-header-height:calc( var(--header-height) / 2 );
+	--toolbox-table-height:44px;
+	--toolbox-td-height:calc( var(--toolbox-table-height) - 12px );
+	--toolbox-img-height:calc( var(--toolbox-table-height) - 20px );
+	--toolbox-input-width:calc( var(--toolbox-td-height) * 1.75 );
+	--toolbox-input-font-size:calc( var(--toolbox-td-height) - 8px );
+	--editbox-font-size:90%;
+	--editbox-font-size-sm:80%;
+	--ok-color: #4f4f4f;
+	--cancel-color: #bf2f2f;
+	--error-color: #b2f2f2;
+	--button-color:#ffffff;
+	--lightgray-color:#dfdfdf;
+	--lightlightgray-color:#f4f4f4;
+	--gray-color:#7f7f7f;
+	--darkgray-color:#4f4f4f;
+	--dark-color:#2f2f2f;
+	--black-color:#000000;
+}
+
+	body { 
+		background-color:white; scroll-behavior:smooth;
+		font-family:arial; margin:0; padding:0;
+	}
+	
+	div { box-sizing: border-box; margin:0px; padding:0px; }
+	table { box-sizing: border-box; margin:0px; padding:0px; }
+	td { padding:0px; }
+
+	a {
+		text-decoration:none; color:white;
+	}
+
+	.header {
+		height:var(--header-height); width:100%; margin:0; padding:0; display:block; box-sizing:border-box;
+		border-bottom:0px solid var(--dark-color); 
+		background-image:linear-gradient(to right, rgb(120,120,120), rgb(20,20,20), rgb(120,120,120));
+	}
+	.menu {
+		width:15%; height:var(--header-height); margin:0px 0px 0px 0px; padding:0px; box-sizing:border-box; display:block; float:left; 
+		text-align:center; 
+	}
+	.menu div {
+		display:block; float:left; position:relative; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; 
+		width:25%; height:100%; margin:0px; padding:4px 0px 4px 0px; 
+		color:var(--lightgray-color); font-size:var(--half-header-height); text-align:center;
+	}
+	.menu div.normal { color:white; border:0px dotted var(--gray-color); }
+	.menu div.active { color:white; /*background-color:var(--black-color);*/ }
+
+	/*
+	.menu div img { outline:1px solid var(--gray-color); border:1px solid var(--darkgray-color); height:var(--half-header-height); padding:4px; }
+	.menu div.active img { outline:1px solid var(--gray-color); border:1px solid var(--dark-color); }
+	*/
+	.menu div img { border:1px dotted var(--black-color); border-radius:4px; height:var(--half-header-height); padding:4px; opacity:0.5; }
+	.menu div img:hover { opacity:0.75; }
+	.menu div.active img { border:1px dotted var(--black-color); opacity:1.0; }
+
+	.project-details {
+		width:65%; height:var(--header-height); margin:0px; display:block; float:left; 
+		text-align:center; font-size:11px; color:white;
+	}
+	.project-details div.project-name {
+		width:100%; height:var(--half-header-height); margin:0px; padding-top:2px; display:block; 
+		white-space:nowrap; text-overflow:ellipsis; overflow:hidden;  
+		text-align:center; font-size:16px;
+	}
+	.project-details div.project-time-and-version {
+		width:100%; height:var(--half-header-height); display:block; 
+		white-space:nowrap; text-overflow:ellipsis; overflow:hidden;
+		font-family:courier; text-align:center; font-size:11px; margin:0; padding:2px;
+	}
+
+	.project-user {
+		width:20%; height:var(--header-height); margin:0px; padding:2px; display:block; float:left;
+		white-space:nowrap; text-overflow:ellipsis; overflow:hidden;  
+		vertical-align:middle; color:white; text-align:center;
+		font-size:12px;
+	}
+
+	.content {
+		width:100%; box-sizing:border-box; top:var(--header-height);
+		border:0; margin:0; padding:0; background-color:white; text-align:center;
+	}		
+
+	.page {
+		display:none; width:100%; border:0; margin:0; padding:0; background-color:white;
+	}
+
+	.toolbox div img { 
+		float:left; border:0; display:inline;
+		margin:0px 4px 0px 4px; padding:0px; height:var(--toolbox-img-height); 
+		cursor:pointer; opacity:0.7; 
+	}
+	.toolbox div img:hover { opacity:1.0; }
+
+	button { box-sizing:border-box; margin:0px; border:1px dotted var(--darkgray-color); 
+		border-radius:4px; background-color:var(--lightlightgray-color); 
+		cursor: pointer; text-align:center; }
+
+	button.ok { border-color:var(--ok-color); color:var(--ok-color); font-size:var(--editbox-font-size); }
+	button.ok:hover { background-color: var(--ok-color); color: white; }
+
+	button.cancel { border-color: var(--cancel-color); color: var(--cancel-color); font-size:var(--editbox-font-size); }
+	button.cancel:hover { background: var(--cancel-color); color: white; }
+
+	.toolbox div {
+		display:inline-block;
+		height:var(--toolbox-td-height); padding:4px 6px 4px 6px; box-sizing:border-box; 
+		margin-left:6px; margin-right:6px; border-radius:8px;
+		cursor:default; text-align:center; font-size:var(--toolbox-img-height);
+		background-color:var(--lightgray-color); 
+	}
+
+	.toolbox div input[type=text] {
+		width:var(--toolbox-input-width); height:var(--toolbox-input-font-size); box-sizing:border-box; 
+		text-align:left; font-size:var(--toolbox-input-font-size); 
+		margin:0px; padding:0px; border:0; background-color:var(--lightgray-color); 
+	}
+
+	toolbox div.toolbox-separator {
+		width:20px; height:var(--toolbox-td-height); box-sizing:border-box;
+		margin:0px 2px 0px 2px; padding:0px; border:0px solid gray; background-color:white; color:var(--dark-color);
+	}
+	/*
+	.toolbox div label {
+		font-size:var(--toolbox-font-size); 
+	}
+	*/
+	table.toolbox {
+		width:100%; margin:0; padding:0; box-sizing:border-box; 
+		height:var(--toolbox-table-height);
+		background-color:white;
+	}
+
+	table.toolbox td.toolbox-left {
+		white-space:nowrap; text-overflow:ellipsis; overflow:hidden;
+		width:90%; height:var(--toolbox-td-height); padding:2px 0px 0px 24px; text-align:left;
+	}
+	table.toolbox td.toolbox-left div {
+		float:left;
+	}
+	table.toolbox td.toolbox-left div:first-child {
+		border:0px;
+	}
+	table.toolbox td.toolbox-left div input[type=text] {
+		float:left; text-align:left;
+	}
+
+	table.toolbox td.toolbox-right {
+		white-space:nowrap; text-overflow:ellipsis; overflow:hidden;
+		width:10%; height:var(--toolbox-td-height); padding:0px 24px 0px 0px; text-align:right;
+	}
+	table.toolbox td.toolbox-right div {
+		float:right; 
+	}
+	table.toolbox td.toolbox-right div:first-child {
+		border:0px;
+	}
+	table.toolbox td.toolbox-right div input[type=text] {
+		text-align:left;		
+	}
+
+	#editBoxDetails { box-sizing: border-box; padding:4px; text-align:left; color:#4f4f4f; font-size:var(--editbox-font-size-sm); }
+
+	#editBoxInputs { box-sizing: border-box; text-align:right; margin-top:8px; }		
+
+	div.editBoxInputContainer {
+		width:100%; box-sizing: border-box; clear: both; text-align:right; display: table;
+	}
+
+	div.editBoxPromptDiv { 
+		width:50%; float:left; padding:0px 4px 0px 0px; text-align:right; font-size:var(--editbox-font-size); 
+	} 
+	div.editBoxInputDiv { 
+		width:50%; float:left; 
+	}		
+	@media only screen and (max-width: 600px) { 
+		div.editBoxPromptDiv { 
+			width:100%; float:left; text-align:left; font-size:var(--editbox-font-size);
+		} 
+		div.editBoxInputDiv { 
+			width:100%; float:left; 
+		}
+	}
+
+	textarea.editBoxInput {
+		width:100%; font-size:var(--editbox-font-size); box-sizing: border-box;
+	}
+	input.editBoxInput {
+		width:100%; font-size:var(--editbox-font-size); border-radius:4px; box-sizing: border-box; border:1px dotted #d0d0d0;		
+	}
+	input.editBoxInputDateTime {
+		width:80%; font-size:var(--editbox-font-size); border-radius:4px; box-sizing: border-box; border:1px dotted #d0d0d0; float:left;		
+	}
+	div.editBoxInputCallCalendar {
+		width:20%; font-size:var(--editbox-font-size); box-sizing: border-box; float:left; cursor:pointer;
+	}
+
+	#editBoxFileUploadPane { width:100%; text-align:right; margin-top:12px; padding-top:0px; font-size:var(--editbox-font-size); }
+	#editBoxFileUploadPane input { display:hidden; width:0.1px; height:0.1px; margin:0; padding:0; }
+
+	table.editBoxFileUpload { width:auto; float:right; overflow-y:hidden; border-radius:4px; border:1px solid #d0d0d0; background-color:var(--lightlightgray-color); height:62px; max-height:62px; }
+    table.editBoxFileUpload td { box-sizing:border-box; width:20px; height:14px; max-height:14px;  text-align:center; padding:1px; }
+    table.editBoxFileUpload td div { box-sizing:border-box; cursor:pointer; height:14px; max-height:14px; font-size:12px; border-radius:4px; }
+    table.editBoxFileUpload th { box-sizing:border-box; padding:1px; max-width:60px; width:60px; max-height:48px; height:48px; font-weight:normal; font-size:10px; }	
+    table.editBoxFileUpload img { max-width:60px; max-height:34px; height:34px; border-radius:4px; }	
+	table.editBoxFileUpload input { display:none; width:0.1px; height:0.1px; margin:0; padding:0; }
+	table.editBoxFileUpload label { cursor:pointer; }
+	.editBoxFileDelete { display:none; color:var(--cancel-color); }
+	.editBoxFileReset { display:none; }
+	.editBoxFileName { overflow:hidden; max-width:62px; max-height: 14px; margin:0; padding:0; color:var(--gray-color); text-align:left; font-size:12px; cursor:pointer; }
+
+	h1 { margin:2% 1% 1% 1%; font-size:140%; color:var(--dark-color); font-variant:small-caps; }
+
+	dim { border-color:var(--lightgray-color); color:var(--lightgray-color); }
+
+	.clearfix::after {
+	    content: ""; clear: both; display: table;
+	}
+
+	.ok-color { color: var(--ok-color); }
+	.cancel-color { color: var(--cancel-color); }
+	.error-color { color: var(--error-color); }	
+
+	.keyword {
+		background-color: var(--lightgray-color); padding:0px 4px 0px 4px; border-radius:4px; font-style:normal;
+	}
+
+	input.noArrow[type=number]::-webkit-inner-spin-button, 
+	input.noArrow[type=number]::-webkit-outer-spin-button { 
+	  -webkit-appearance: none; 
+	  margin: 0; 
+	  step:'any';
+	}
+
+	select.noArrow::-ms-expand { display: none; }
+	select.noArrow {
+	    -webkit-appearance: none;
+	    appearance: none;
+	}
+
+	.helpText {
+		padding:24px 20vw 0px 20vw; text-align:left; line-height:150%; font-size:14px;
+	}
+
+	.helpText div {
+		margin-bottom:24px;
+	}
+
+	.helpText div img {
+		display:inline-block; height:20px; position:relative; top:4px;
+	}
+
