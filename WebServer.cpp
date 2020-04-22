@@ -48,6 +48,7 @@ int callback ( ServerData *sd ) {
   _callback_error_code = 0;
   sd->sp_response_buf = _callback_response;
   sd->sp_free_response_buf = false;
+  sd->sp_response_file = false;
 
   if( sd->message_id == SERVER_GET_CONTENTS ) {
     strcpy( sd->sp_response_buf,
@@ -61,8 +62,9 @@ int callback ( ServerData *sd ) {
     _callback_error_code = 0;
   }
   else if( sd->message_id == SERVER_GET_GANTT ) {
-    strcpy( sd->sp_response_buf, "tempdata/gantt.json" );
+    strcpy( sd->sp_response_buf, "html/tempdata/gantt.json" );
     sd->sp_response_buf_size = strlen(sd->sp_response_buf);
+	sd->sp_response_file = true;
     _callback_error_code = 0;
   }
   else if( sd->message_id == SERVER_SAVE_GANTT ) {
@@ -78,8 +80,9 @@ int callback ( ServerData *sd ) {
     _callback_error_code = 0;
   }
   else if( sd->message_id == SERVER_GET_INPUT ) {
-    strcpy( sd->sp_response_buf, "tempdata/input.json" );
+    strcpy( sd->sp_response_buf, "html/tempdata/input.json" );
     sd->sp_response_buf_size = strlen(sd->sp_response_buf);
+	sd->sp_response_file = true;
     _callback_error_code = 0;
   }
   else if( sd->message_id == SERVER_SAVE_INPUT ) {
@@ -127,17 +130,11 @@ int callback ( ServerData *sd ) {
   return _callback_error_code;
 }
 
-//#include <mutex>
-//std::mutex mtx;
-
-//int main(int argc, char **argv )
-//static int message=0;
 
 static char* users_and_passwords [] = { "admin", "admin", 0};
 char* MPath = "C:\\Users\\lgirs\\Desktop\\papa\\spider\\server\\dll";
 static StartServerData Data;
 
-//void StartWebServer (int argc, char** argv)
 int main (int argc, char** argv)
 {
   HINSTANCE hServerDLL;
@@ -149,23 +146,6 @@ int main (int argc, char** argv)
   Data.Message = 0;
 
 
-  /*
-  char *default_ip = "127.0.0.1";
-  char *ip;
-  if (argc > 1) {
-    ip = argv[1];
-  } else {
-    ip = default_ip;
-  }
-  char *default_port = "8000";
-  char *port;
-  if (argc > 2) {
-    port = argv[2];
-  } else {
-    port = default_port;
-  }
-  */
-
   hServerDLL = LoadLibrary ("server");
   if (hServerDLL != NULL)
   {
@@ -175,7 +155,6 @@ int main (int argc, char** argv)
       //int (*callback_ptr)(ServerData *) = callback;
       //cerr << "Server is about to start!" << endl;
 
-      //p_server_start (ip, port, users_and_passwords, callback_ptr, &message);
       p_server_start (&Data, callback);
 
       cerr << "The server has started! Press <CTRL-C> to stop the server..."  << endl;

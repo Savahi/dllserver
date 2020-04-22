@@ -54,9 +54,9 @@ function checkServer( check=1, callback=null, scheduleNext=null) {
 	    }
 	}
 	if( check == 1 ) { // Checking availabitity
-		xmlhttp.open("GET", '/check_connection', true);
+		xmlhttp.open("GET", '/.check_connection', true); 	// Checking connection...
 	} else {
-		xmlhttp.open("GET", '/check_authorized', true);	
+		xmlhttp.open("GET", '/.check_authorized', true); 	// Checking authorization...
 	}
     xmlhttp.send();
 }

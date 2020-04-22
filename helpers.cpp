@@ -46,68 +46,97 @@
 	}
 
 
-	int getUriToServe(char *b, char *uri_buf, int uri_buf_size, char **get, char **post) {
-		int r = -1;
-		int b_len = strlen(b);
+int getUriToServe(char *b, char *uri_buf, int uri_buf_size, bool *is_get, char *get_buf, int get_buf_size, char **post, bool *is_options) {
+	int b_len = strlen(b);
 
-		*get = nullptr;
-		*post = nullptr;
-		// Searching for "GET" or "POST"
-		int uri_index = -1;
-		for (int i = 0; i < b_len - 4; i++) {
-			if (tolower(b[i]) == 'g' && tolower(b[i + 1]) == 'e' && tolower(b[i + 2]) == 't') {
-				uri_index = i;
-				for (int j = i+3; j < b_len - 4; j++) {
-					if ( b[j] == '?' ) {
-						*get = &b[j + 1];
-						break;
-					}
-				}
-				break;
-			}
-			if (tolower(b[i]) == 'p' && tolower(b[i + 1]) == 'o' && tolower(b[i + 2]) == 's' && tolower(b[i + 3]) == 't') {
-				uri_index = i;
-				int post_index = -1;
-				for (int j = i+4; j < b_len - 4; j++) {
-					if (tolower(b[j]) == '\r' && tolower(b[j+1]) == '\n' && tolower(b[j+2]) == '\r' && tolower(b[j+3]) == '\n') {
-						*post = &b[j + 4];
-						break;
-					}
-				}
-				break;
-			}
+	*is_get = false;
+	*post = nullptr;
+	*is_options = false;
+
+	// Searching for "GET", "POST" or "OPTIONS"
+	int uri_index = -1;
+
+	int i = 0; 	// To skip leading spaces if exist...
+	for( ; i < b_len ; i++) {
+		if( b[i] != ' ' ) {
+			break;
 		}
-		if (uri_index != -1) { 	// If "GET" found...
-			int first_path_index = -1;
-			int last_path_index = -1;
-			for (int j = uri_index + 3; j < b_len - 1; j++) {
-				if (b[j] == ' ') {
-					continue;
-				}
-				if (b[j] == '/') {
-					first_path_index = j;
-					break;
-				}
-			}
-			if (first_path_index != -1) {
-				last_path_index = first_path_index;
-				for (int j = first_path_index + 1; j < b_len; j++) {
-					if (b[j] != ' ' && b[j] != '\r' && b[j] != '\n' && b[j] != '?') {
-						last_path_index++;
-						continue;
-					}
-					break;
-				}
-			}
-			int path_len = (last_path_index - first_path_index + 1);
-			if (first_path_index != -1 && last_path_index != -1 && path_len <= uri_buf_size) {
-				strncpy_s(uri_buf, uri_buf_size, &b[first_path_index], path_len);
-				uri_buf[path_len] = '\x0';
-				r = 0;
-			}
-		}
-		return r;
 	}
+
+	if( i < b_len - 4 ) {	// Is it a GET?
+		if (tolower(b[i]) == 'g' && tolower(b[i + 1]) == 'e' && tolower(b[i + 2]) == 't') {
+			uri_index = i+3;
+			*is_get = true;
+			get_buf[0] = '\x0';
+		}
+	}
+	if( *is_get == false && i < b_len - 4 ) { 	// Is it a POST?
+		if (tolower(b[i]) == 'p' && tolower(b[i + 1]) == 'o' && tolower(b[i + 2]) == 's' && tolower(b[i + 3]) == 't') {
+			uri_index = i+4;
+			int post_index = -1;
+			for (int j = i+4; j < b_len - 4; j++) {
+				if (tolower(b[j]) == '\r' && tolower(b[j+1]) == '\n' && tolower(b[j+2]) == '\r' && tolower(b[j+3]) == '\n') {
+					post_index = j + 4;
+					*post = &b[post_index];
+					break;
+				}
+			}
+			if( post_index == -1 ) { 	// A POST request, but no post data...
+				return -1;
+			}
+		}
+	}
+	if( *is_get == false && *post == nullptr && i < b_len - 7 ) { 	// Is it an OPTIONS?
+		if (tolower(b[i]) == 'o' && tolower(b[i+1]) == 'p' && tolower(b[i+2]) == 't' && tolower(b[i+3]) == 'i' &&
+			tolower(b[i+4]) == 'o' && tolower(b[i+5]) == 'n' && tolower(b[i+6]) == 's' ) {
+			uri_index = i+7;
+			*is_options = true;
+		}
+
+	}
+	if( uri_index == -1 ) {
+		return -1;
+	}
+
+	int first_uri_index = -1;
+	int last_uri_index = -1;
+	for (int i = uri_index; i < b_len - 1; i++) {
+		if (b[i] == ' ') {
+			continue;
+		}
+		if (b[i] == '/') {
+			first_uri_index = i;
+			break;
+		}
+	}
+	if (first_uri_index != -1) {
+		int last_uri_index = first_uri_index + 1;
+		for (; last_uri_index < b_len; last_uri_index++) {
+			if( b[last_uri_index] == '?' ) { 	// A uri with get request				
+				for( int j = last_uri_index+1 ; j < b_len ; j++ ) {
+					if( b[j] == ' ' || b[j] == '\r' || b[j] == '\n' ) {
+						int get_request_len = j-last_uri_index-1;
+						if( get_request_len > 0 && get_request_len < get_buf_size ) {
+							strncpy( get_buf, &b[last_uri_index+1], get_request_len );
+							get_buf[get_request_len] = '\x0';
+						}
+					}
+				}
+				break;			
+			}
+			if (b[last_uri_index] == ' ' || b[last_uri_index] == '\r' || b[last_uri_index] == '\n' ) {
+				break;
+			}
+		}
+		int uri_len = last_uri_index - first_uri_index;
+		if (uri_len < uri_buf_size) {
+			strncpy_s(uri_buf, uri_buf_size, &b[first_uri_index], uri_len);
+			uri_buf[uri_len] = '\x0';
+			return 0;
+		}
+	}
+	return -1;
+}
 
 
 bool is_html_request( char *uri ) {
@@ -124,37 +153,134 @@ bool is_html_request( char *uri ) {
 }
 
 
+int get_user_and_session_from_cookie( char *b, char *user_buf, int user_buf_size, char *sess_id_buf, int sess_id_buf_size  ) {
+	int r = 0; 
+	int b_len = strlen(b);
 
-
-/*
-	static const char _http_header_bad_request[] = "HTTP/1.1 400 Bad Request\r\nVersion: HTTP/1.1\r\nContent-Length:0\r\n\r\n";
-	static const char _http_header_not_found[] = "HTTP/1.1 404 Not Found\r\nVersion: HTTP/1.1\r\nContent-Length:0\r\n\r\n";
-	static const int _http_header_buf_size = sizeof(_http_header_template) + COOKIE_BUF_SIZE + MIME_BUF_SIZE + 100; 
-
-	void create_http_header_bad_request( char *dst, int dst_buf_size ) {
-		if( dst_buf_size > sizeof(_http_header_bad_request) ) {			
-			strcpy( dst, _http_header_bad_request );
-		} else {
-			strcpy( dst, "" );
+	sess_id_buf[0] = '\x0';
+	user_buf[0] = '\x0';
+	
+	int cookie_index = -1;
+	for (int i = 0; i < b_len - 8; i++) {
+		if (tolower(b[i]) == 'c' && tolower(b[i + 1]) == 'o' && tolower(b[i + 2]) == 'o' &&
+			tolower(b[i + 3]) == 'k' && tolower(b[i + 4]) == 'i' && tolower(b[i + 5]) == 'e' && b[i + 6] == ':') {
+			cookie_index = i + 7;
+			break;
+		}
+	}
+	int session_index = -1;
+	if (cookie_index != -1) { 	// If "Cookie:" found...
+		for (int i = cookie_index; i < b_len - 9; i++) {
+			if (tolower(b[i]) == 's' && tolower(b[i + 1]) == 'e' && tolower(b[i + 2]) == 's' && tolower(b[i + 3]) == 's' && 
+				tolower(b[i + 4]) == '_' && tolower(b[i + 5]) == 'i' && tolower(b[i + 6]) == 'd' && b[i + 7] == '=') {
+				session_index = i + 8;
+				break;
+			}
+		}
+	}
+	int session_ending_index = -1;
+	if (session_index != -1) {
+		for (int i = session_index; i < b_len; i++) {
+			if (b[i] == ' ' || b[i] == ';' || b[i] == ',' || b[i] == '\r' || b[i] == '\n') {
+				session_ending_index = i - 1;
+				break;
+			}
 		}
 	}
 
-	void create_http_header_not_found( char *dst, int dst_buf_size ) {
-		if( dst_buf_size > sizeof(_http_header_not_found) ) {			
-			strcpy( dst, _http_header_not_found );
-		} else {
-			strcpy( dst, "" );
+	int l = session_ending_index - session_index + 1;
+	if (l > 0) {
+		if( l > sess_id_buf_size ) {
+			l = sess_id_buf_size;
+		}
+		for ( int i = 0 ; i < l ; i++) {
+			sess_id_buf[i] = b[session_index + i];
+		}
+		r++;
+		sess_id_buf[l] = '\x0';
+	}
+
+	int user_index = -1;
+	if (cookie_index != -1) { 	// If "Cookie:" found...
+		for (int i = cookie_index; i < b_len - 6; i++) {
+			if (tolower(b[i]) == 'u' && tolower(b[i + 1]) == 's' && tolower(b[i + 2]) == 'e' && tolower(b[i + 3]) == 'r' && tolower(b[i + 4]) == '=' ) {
+				user_index = i + 5;
+				break;
+			}
+		}
+	}
+	int user_ending_index = -1;
+	if (user_index != -1) {
+		for (int i = user_index; i < b_len; i++) {
+			if (b[i] == ' ' || b[i] == ';' || b[i] == ',' || b[i] == '\r' || b[i] == '\n') {
+				user_ending_index = i - 1;
+				break;
+			}
 		}
 	}
 
-	static const char _http_header_template[] = "HTTP/1.1 200 OK\r\nVersion: HTTP/1.1\r\n%sContent-Type:%s\r\nContent-Length:%lu\r\n\r\n";
-
-	void create_http_header( char *dst, int dst_buf_size, char *cookie, char *mime, unsigned long int cl ) {
-		if( dst_buf_size > sizeof(_http_header_not_found) ) {			
-			strcpy( dst, _http_header_not_found );
-		} else {
-			strcpy( dst, "" );
+	l = user_ending_index - user_index + 1;
+	if (l > 0) {
+		if( l > user_buf_size ) {
+			l = user_buf_size;
 		}
+		for ( int i = 0 ; i < l ; i++) {
+			user_buf[i] = b[user_index + i];
+		}
+		r++;
+		user_buf[l] = '\x0';
 	}
+		
+	return r;
+}
 
-*/
+
+int get_user_and_pass_from_post( char *b, char *user_buf, int user_buf_size, char *pass_buf, int pass_buf_size ) {
+	int r = 0;
+
+	int b_len = strlen(b);
+	
+	user_buf[0] = '\x0';
+	int user_index = -1;
+	for( int i = 0 ; i < b_len ; i++ ) {
+		if( tolower(b[i]) == 'u' && tolower(b[i+1]) == 's' && tolower(b[i+2]) == 'e' && 
+			tolower(b[i+3]) == 'r' && tolower(b[i+4]) == '=' ) {
+			user_index = i+5;
+			break;
+		}
+	}		
+	if( user_index != -1 ) {
+		int user_i = 0;
+		for( int i = user_index ; i < b_len && user_i < user_buf_size ; i++ ) {
+			if( b[i] == '&' || b[i] == ' ' ) {
+				break;
+			}
+			user_buf[user_i] = b[i];
+			user_i++;
+		}
+		user_buf[user_i]='\x0';
+		r++;
+	}
+	pass_buf[0] = '\x0';
+	int pass_index = -1;
+	for( int i = 0 ; i < b_len ; i++ ) {
+		if( tolower(b[i]) == 'p' && tolower(b[i+1]) == 'a' && tolower(b[i+2]) == 's' && 
+			tolower(b[i+3]) == 's' && tolower(b[i+4]) == '=' ) {
+			pass_index = i+5;
+			break;
+		}
+	}		
+	if( pass_index != -1 ) {
+		int pass_i = 0;
+		for( int i = pass_index ; i < b_len && pass_i < pass_buf_size ; i++ ) {
+			if( b[i] == '&' || b[i] == ' ' ) {
+				break;
+			}
+			pass_buf[pass_i] = b[i];
+			pass_i++;
+		}
+		pass_buf[pass_i]='\x0';
+		r++;
+	}
+	return r;
+}

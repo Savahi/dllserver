@@ -29,7 +29,7 @@ var _settings = {
 	readableNumberOfOperations:28, maxNumberOfOperationOnScreen:50
 }
 
-var _requests = { data:"/input/data", logout:"/logout", save:"/input/save", check_synchro:"/input/check_synchro" };
+var _requests = { data:"/.input_data", logout:"/.logout", save:"/.save_input", check_synchro:"/.check_input_synchro" };
 
 var _zoomVerticallyInput = null; 
 var _zoomVerticallyPlusIcon = null;

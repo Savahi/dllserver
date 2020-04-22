@@ -50,7 +50,7 @@ var _settings = {
 	readableNumberOfOperations:28, minNumberOfOperationsOnScreen:6, maxNumberOfOperationsOnScreen:50
 }
 
-var _requests = { data:"/gantt/data", logout:"/logout", save:"/gantt/save", check_synchro:"/gantt/check_synchro" };
+var _requests = { data:"/.gantt_data", logout:"/.logout", save:"/.save_gantt", check_synchro:"/.check_gantt_synchro" };
 
 var _zoomHorizontallyInput = null;
 var _zoomHorizontallyIcon = null;

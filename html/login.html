@@ -97,7 +97,12 @@ function login( errorMessageId, loaderId, userId,  passId ) {
 		return;
 	}
 
+//console.log('user:'+user);
+//console.log('pass:'+pass);
+
 	let data = encodeURIComponent('user')+'='+encodeURIComponent(user)+'&'+encodeURIComponent('pass')+'='+encodeURIComponent(pass);
+
+//console.log('user:'+data);
 
 	displayErrorMessage('connectionError', false);
 	displayErrorMessage('credentialsError', false);
@@ -106,7 +111,7 @@ function login( errorMessageId, loaderId, userId,  passId ) {
 
 	displayLoader( loaderEl, true );
 
-	xmlhttp.open("POST", '/login', true);
+	xmlhttp.open("POST", '/.login', true);
 	xmlhttp.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
     xmlhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
     xmlhttp.send(data);

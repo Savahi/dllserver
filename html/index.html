@@ -18,7 +18,7 @@
 <div id='header'>
 	<div id='header-lang'><span id='text-lang'>en</span></div>
 	<!--<div id='header-logged'><span id='text-user-name'></span> :: <a href='/logout' id='#a-logout'><span id='text-logout'></span> &#10132;</a></div>-->
-	<div id='header-logged'><span id='text-user-name'></span> :: <a href='/logout' id='a-logout'><span id='text-logout'></span> &#10132;</a></div>
+	<div id='header-logged'><span id='text-user-name'></span> :: <a href='/.logout' id='a-logout'><span id='text-logout'></span> &#10132;</a></div>
 </div>
 
 
@@ -51,7 +51,7 @@
 
 function loadContents() {
 	let sectionIds = [ 'gantt', 'input', 'dashboard' ]
-	let url = '/contents';
+	let url = '/.contents';
 	let sectionContainerEl = null;
 	fetch( url ).then(data => data.json()).then( function(data) { 
 		for( let i = 0 ; i < sectionIds.length ; i++ ) {
@@ -85,12 +85,16 @@ function loadContents() {
 }
 
 
-function checkAvailabilityAndProceed(url) {	
+function checkAvailabilityAndProceed(url, clearCookie=false) {	
 	displayErrorMessage('connectionError', false);
 	checkServer( 2, function(available, notUsed) {
 		if( !available ) {
 			displayErrorMessage('connectionError');
 		} else {
+			if( clearCookie ) {
+				deleteCookie('user');
+				deleteCookie('sess_id');
+			}
 			window.location.href = url;
 		}
 	});	
@@ -114,7 +118,7 @@ function checkAuthorizedAndProceed(url) {
 window.addEventListener('load', function() { 
 	let logoutEl = document.getElementById('a-logout');
 	if( logoutEl ) {
-		logoutEl.onclick = function(e) { e.preventDefault(); checkAvailabilityAndProceed('/logout'); };		
+		logoutEl.onclick = function(e) { e.preventDefault(); checkAvailabilityAndProceed('/.logout', true); };		
 	}
 });
 
