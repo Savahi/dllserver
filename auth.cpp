@@ -104,12 +104,12 @@ static void generate_session_id( char *user, char *sess_id, int sess_id_len )
 {
 	unsigned long int user_sum = 0;
 	unsigned long int user_mult = 0;
-	for( int i = 0 ; i < strlen(user) ; i++ ) {
+	for( unsigned int i = 0 ; i < strlen(user) ; i++ ) {
 		int n = static_cast<int>(user[i]);
 		user_sum += n+(i+1);
 		user_mult += n*(i+1);
 	}
-	unsigned long int seed = timeSinceEpochMillisec() + user_mult + user_sum;
+	unsigned long int seed = static_cast<unsigned long>(timeSinceEpochMillisec()) + user_mult + user_sum;
 	std::srand(seed);
 
 	for( int i = 0 ; i < sess_id_len ; i++ ) {
@@ -146,7 +146,7 @@ static int read_sessions(fstream &f) {
 				if(f) {
 					f.read( (char*)&_sess_buf[0], sizeof(_sess_buf) );
 					if(f) {
-						int bytes_read = f.gcount();
+						long int bytes_read = static_cast<long int>(f.gcount());
 						if( bytes_read == sizeof(_sess_buf) ) { 	// Bytes read equals session buffer capacity - Ok!
 							r = bytes_read;
 							for( int i = 0 ; i < _sess_buf_capacity ; i++ ) {

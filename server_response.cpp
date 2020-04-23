@@ -1,21 +1,29 @@
 #include "server.h"
-#include "auth.h"
-#include "helpers.h"
 
 static const int _uri_buf_size = 400;		// Buffer size for uri
 static const int _get_buf_size = 4000;		// Buffer size for get request
 static const int _html_file_path_buf_size = SRV_MAX_HTML_ROOT_PATH + 1 + _uri_buf_size + 1;
+
+static const int _file_to_serve_buf_size = 10000;
+static char _file_to_serve_buf[ _file_to_serve_buf_size+1];
+
+static constexpr int _max_response_size = 99999999;
+static constexpr int _max_response_size_digits = 8;
+
+constexpr int _mime_buf_size = MIME_BUF_SIZE;
+char _mime_buf[_mime_buf_size+1];
+
+static const char _http_header_template[] = "HTTP/1.1 200 OK\r\nVersion: HTTP/1.1\r\nContent-Type:%s\r\nContent-Length:%lu\r\n\r\n";
+static const int _http_header_buf_size = sizeof(_http_header_template) + _mime_buf_size + _max_response_size_digits; 
 
 static const char _http_empty_message[] = "HTTP/1.1 200 OK\r\nContent-Length:0\r\n\r\n";
 static const char _http_authorized[] = "HTTP/1.1 200 OK\r\nContent-Length:1\r\n\r\n1";
 static const char _http_not_authorized[] = "HTTP/1.1 200 OK\r\nContent-Length:1\r\n\r\n0";
 static const char _http_synchro_not_authorized[] = "HTTP/1.1 200 OK\r\nContent-Length:2\r\n\r\n-1";
 static const char _http_logged_out[] = "HTTP/1.1 200 OK\r\nContent-Length:1\r\n\r\n1";
-static const char _http_header_template[] = "HTTP/1.1 200 OK\r\nVersion: HTTP/1.1\r\nContent-Type:%s\r\nContent-Length:%lu\r\n\r\n";
 static const char _http_header_bad_request[] = "HTTP/1.1 400 Bad Request\r\nVersion: HTTP/1.1\r\nContent-Length:0\r\n\r\n";
 static const char _http_header_not_found[] = "HTTP/1.1 404 Not Found\r\nVersion: HTTP/1.1\r\nContent-Length:0\r\n\r\n";
 static const char _http_header_failed_to_serve[] = "HTTP/1.1 501 Internal Server Error\r\nVersion: HTTP/1.1\r\nContent-Length:0\r\n\r\n";
-static const int _http_header_buf_size = sizeof(_http_header_template) + MIME_BUF_SIZE + 100; 
 
 class ResponseWrapper {
 	public:
@@ -23,9 +31,11 @@ class ResponseWrapper {
 	char *body;
 	char *body_allocated;
 	int body_len;
+
 	ResponseWrapper(): body(nullptr), body_allocated(nullptr), body_len(0) {
 		header[0] = '\x0';
 	}	
+
 	~ResponseWrapper() {
 		if( body_allocated != nullptr ) {
 			delete [] body;
@@ -33,16 +43,36 @@ class ResponseWrapper {
 	}	
 };
 
+class ServerDataWrapper {
+	public:
+
+	ServerData sd;
+	
+	ServerDataWrapper() {
+		sd.user = nullptr;
+		sd.message = nullptr;
+		sd.sp_response_buf = nullptr;
+		sd.sp_free_response_buf = false;
+  		sd.sp_response_file = false;
+	}
+
+	~ServerDataWrapper() {
+		if( sd.sp_free_response_buf == true ) {
+			delete [] sd.sp_response_buf;
+		}
+	}
+};
 
 static void readHtmlFileAndPrepareResponse( char *file_name, char *html_source_dir, ResponseWrapper &response );
 static void querySPAndPrepareResponse( callback_ptr callback, char *uri, char *sess_id, char *user, 
-	bool is_get, char *get, char *post, ResponseWrapper &response, ServerData &sd );
+	bool is_get, char *get, char *post, ResponseWrapper &response, ServerDataWrapper &sdw );
 static void send_redirect( int client_socket, char *uri );
 
 #define AUTH_URI_NUM 4
 static char *_auth_uri[] = { "/index", "/gantt/", "/input/", "/dashboard/" };
 
-static char _login_try_message_buffer[ _http_header_buf_size + 1 + AUTH_SESS_ID_LEN + 1];
+static const int _login_try_message_buffer_size = _http_header_buf_size + AUTH_SESS_ID_LEN + 1;
+static char _login_try_message_buffer[ _login_try_message_buffer_size+1 ];
 
 
 void server_response( int client_socket, char *socket_request_buf, int socket_request_buf_size, 
@@ -86,19 +116,20 @@ void server_response( int client_socket, char *socket_request_buf, int socket_re
 	if( strcmp(uri,"/.login") == 0 ) { 	// A login try?
 		if( post != nullptr ) {
 			get_user_and_pass_from_post( post, post_user, AUTH_USER_MAX_LEN, post_pass, AUTH_USER_MAX_LEN );
-server_error_message( std::string("************************************** post_user: ") + std::string(post_user) + std::string("\n") );
-server_error_message( std::string("************************************** post_pass: ") + std::string(post_pass) + std::string("\n") );
+			//server_error_message( std::string("************************************** post_user: ") + std::string(post_user) + std::string("\n") );
+			//server_error_message( std::string("************************************** post_pass: ") + std::string(post_pass) + std::string("\n") );
 			sess_id = auth_do(post_user, post_pass, users_and_passwords);
 			if( sess_id != nullptr ) { 	// Login try ok - sending sess_id 	
 				user = auth_get_user();
-				sprintf( _login_try_message_buffer, _http_header_template, "text/plain", strlen(sess_id) );
-server_error_message( std::string("************************************** sess: ") + std::string(sess_id) );
+				sprintf_s( _login_try_message_buffer, _login_try_message_buffer_size, 
+					_http_header_template, "text/plain", strlen(sess_id) );
+				//server_error_message( std::string("************************************** sess: ") + std::string(sess_id) );
 				strcat( _login_try_message_buffer, sess_id );
 				send(client_socket, _login_try_message_buffer, strlen(_login_try_message_buffer), 0);
 				return;
 			} 
 		}
-		sprintf( _login_try_message_buffer, _http_header_template, "text/plain", 0 );
+		sprintf_s( _login_try_message_buffer, _login_try_message_buffer_size, _http_header_template, "text/plain", 0 );
 		send(client_socket, _login_try_message_buffer, strlen(_login_try_message_buffer), 0);
 		return;
 	} 
@@ -111,7 +142,7 @@ server_error_message( std::string("************************************** sess: 
 	}
 			
 	ResponseWrapper response;
-	ServerData sd;
+	ServerDataWrapper sdw;
 
 	if( strcmp(uri, "/") == 0 ) {
 		strcpy(uri, "/index.html");
@@ -140,7 +171,7 @@ server_error_message( std::string("************************************** sess: 
 			return; 
 		}
 		try {
-			querySPAndPrepareResponse( callback, uri, cookie_sess_id, cookie_user, is_get, get, post, response, sd );
+			querySPAndPrepareResponse( callback, uri, cookie_sess_id, cookie_user, is_get, get, post, response, sdw );
 		}
 		catch (...) {
 			server_error_message( "Failed to create response..." );
@@ -206,78 +237,76 @@ static void querySPAndPrepareResponse(
 	char *get, 			// Points to get request 
 	char *post, 		// Points to post request
 	ResponseWrapper &response,
-	ServerData &sd )
+	ServerDataWrapper &sdw )
 {
 	// Must verify if SP should respond with not a file but with a data
 	int callback_return; 	// 
-	sd.user = user;
-	sd.message = nullptr;
-	sd.sp_response_buf = nullptr;
+	sdw.sd.user = user;
 	bool binary_data_requested = false;
 
 	if( strcmp( uri, "/.contents" ) == 0 ) {
-		sd.message_id = SERVER_GET_CONTENTS;
-		callback_return = callback( &sd );
+		sdw.sd.message_id = SERVER_GET_CONTENTS;
+		callback_return = callback( &sdw.sd );
 	} 
 	else if( strcmp( uri, "/.check_gantt_synchro" ) == 0 && is_get ) {
-		sd.message_id = SERVER_CHECK_GANTT_SYNCHRO;			
-		sd.message = get;
-		callback_return = callback( &sd );
+		sdw.sd.message_id = SERVER_CHECK_GANTT_SYNCHRO;			
+		sdw.sd.message = get;
+		callback_return = callback( &sdw.sd );
 	} 
 	else if( strcmp( uri, "/.check_input_synchro" ) == 0 && is_get ) {
-		sd.message_id = SERVER_CHECK_INPUT_SYNCHRO;
-		sd.message = get;
-		callback_return = callback( &sd );
+		sdw.sd.message_id = SERVER_CHECK_INPUT_SYNCHRO;
+		sdw.sd.message = get;
+		callback_return = callback( &sdw.sd );
 	} 
 	else if( strcmp( uri, "./save_gantt" ) == 0 && post != nullptr ) {
-		sd.message_id = SERVER_SAVE_GANTT;
-		sd.message = post;
-		callback_return = callback( &sd );
+		sdw.sd.message_id = SERVER_SAVE_GANTT;
+		sdw.sd.message = post;
+		callback_return = callback( &sdw.sd );
 	} 
 	else if( strcmp( uri, "/.save_input" ) == 0 && post != nullptr ) {
-		sd.message_id = SERVER_SAVE_INPUT;
-		sd.message = post;
-		callback_return = callback( &sd );
+		sdw.sd.message_id = SERVER_SAVE_INPUT;
+		sdw.sd.message = post;
+		callback_return = callback( &sdw.sd );
 	} 
 	else if( strcmp( uri, "/.save_image" ) == 0 && post != nullptr ) {
-		sd.message_id = SERVER_SAVE_IMAGE;
-		sd.message = post;
-		callback_return = callback( &sd );
+		sdw.sd.message_id = SERVER_SAVE_IMAGE;
+		sdw.sd.message = post;
+		callback_return = callback( &sdw.sd );
 	} 
 	else if( strcmp( uri, "/.get_image" ) == 0 && is_get ) {
-		sd.message_id = SERVER_GET_IMAGE;
-		sd.message = get;
-		callback_return = callback( &sd );
+		sdw.sd.message_id = SERVER_GET_IMAGE;
+		sdw.sd.message = get;
+		callback_return = callback( &sdw.sd );
 		binary_data_requested = true;
 	} 
 	else if( strcmp( uri, "/.gantt_data" ) == 0 && is_get ) {
-		sd.message_id = SERVER_GET_GANTT;
-		sd.message = get;
-		callback_return = callback( &sd );
+		sdw.sd.message_id = SERVER_GET_GANTT;
+		sdw.sd.message = get;
+		callback_return = callback( &sdw.sd );
 	} 
 	else if( strcmp( uri, "/.input_data" ) == 0 && is_get ) {
-		sd.message_id = SERVER_GET_INPUT;
-		sd.message = get;
-		callback_return = callback( &sd );
+		sdw.sd.message_id = SERVER_GET_INPUT;
+		sdw.sd.message = get;
+		callback_return = callback( &sdw.sd );
 	}
 
-	if( sd.sp_response_buf == nullptr || 	// Might happen if mistakenly left as nullptr in SP.
-		callback_return < 0 || sd.sp_response_buf_size == 0 || // An error 
-		sd.sp_response_buf_size > 1e9 ) 	 // The response is too big
+	if( sdw.sd.sp_response_buf == nullptr || 	// Might happen if mistakenly left as nullptr in SP.
+		callback_return < 0 || sdw.sd.sp_response_buf_size == 0 || // An error 
+		sdw.sd.sp_response_buf_size > _max_response_size ) 	 // The response is too big
 	{
 		strcpy(response.header, _http_header_bad_request); 
-	} else if( sd.sp_response_file ) { 	// sd.sp_response_buf contains a file name...
-		readHtmlFileAndPrepareResponse( sd.sp_response_buf, nullptr, response );
+	} else if( sdw.sd.sp_response_file ) { 	// sd.sp_response_buf contains a file name...
+		readHtmlFileAndPrepareResponse( sdw.sd.sp_response_buf, nullptr, response );
 	} else {
-		char mime[MIME_BUF_SIZE+1];
 		if( binary_data_requested ) { 	// An image? (or other binary data for future use)
-			mimeSetType(uri, mime, MIME_BUF_SIZE);
+			mimeSetType(uri, _mime_buf, _mime_buf_size);
 		} else { 	// 
-			strcpy( mime, "text/json; charset=utf-8" );
+			strcpy_s( _mime_buf, _mime_buf_size, "text/json; charset=utf-8" );
 		}
-		sprintf( response.header, _http_header_template, mime, (unsigned long)sd.sp_response_buf_size );
-			response.body = sd.sp_response_buf;
-			response.body_len = sd.sp_response_buf_size;
+		sprintf_s( response.header, _http_header_buf_size, 
+			_http_header_template, _mime_buf, (unsigned long)sdw.sd.sp_response_buf_size );
+		response.body = sdw.sd.sp_response_buf;
+		response.body_len = sdw.sd.sp_response_buf_size;
 		server_error_message( "header: " + std::string(response.header) + ", body: " + std::string(response.body) + "\n" );
 	}
 	return;
@@ -304,35 +333,60 @@ static void readHtmlFileAndPrepareResponse( char *file_name, char *html_source_d
 
 		// Reading http response body
 		fin.seekg(0, std::ios::end);
-		uintmax_t file_size = fin.tellg();
+		long int file_size = static_cast<long int>(fin.tellg());
 		fin.seekg(0, std::ios::beg);
 
-		response.body_allocated = new char[file_size + 1];
-		response.body_len = file_size;
-		fin.read(response.body_allocated, file_size); 	// Adding the file to serve
+		if( file_size > 0 ) {
+			mimeSetType(file_name, _mime_buf, _mime_buf_size);	//
+			if( file_size <= _file_to_serve_buf_size ) { 	// The static buffer is big enough...
+				fin.read(_file_to_serve_buf, file_size); 
+				if( fin.gcount() == file_size ) {
+					response.body = _file_to_serve_buf;
+					response.body_len = file_size;
+					sprintf_s(response.header, _http_header_buf_size, 
+						_http_header_template, _mime_buf, (unsigned long)(file_size) );
+				} else {
+					strcpy_s(response.header, _http_header_buf_size, _http_header_failed_to_serve);
+				}
+			}
+			else if( file_size < _max_response_size ) { 	// The static buffer is not enough...
+				try { 	// Allocating...
+					response.body_allocated = new char[file_size + 1];
+				} catch(...) {;}				
+				if( response.body_allocated != nullptr ) { 	// If allocated Ok...
+					fin.read(response.body_allocated, file_size); 	// Adding the file to serve
+					if( fin.gcount() == file_size ) {
+						response.body_len = file_size;
+						sprintf_s(response.header, _http_header_buf_size, 
+							_http_header_template, _mime_buf, (unsigned long)(file_size) );
+					} else {
+						strcpy_s(response.header, _http_header_buf_size, _http_header_failed_to_serve);
+					}
+				} else {
+					sprintf_s(response.header, _http_header_buf_size, _http_header_failed_to_serve);
+				}
+			} else {
+				sprintf_s(response.header, _http_header_buf_size, _http_header_failed_to_serve);
+			}
+		} else {
+			sprintf_s(response.header, _http_header_buf_size, _http_header_failed_to_serve);
+		}
 		fin.close();
-
-		// Initializing http response header
-		char mime[MIME_BUF_SIZE+1];
-		mimeSetType(file_name, mime, MIME_BUF_SIZE);
-		sprintf(response.header, _http_header_template, mime, (unsigned long)(file_size) );
-		return;
+	} else {
+		strcpy_s(response.header, _http_header_buf_size, _http_header_not_found);
 	}
-	server_error_message("Failed to open...");
-	sprintf(response.header, _http_header_not_found);
 }
 
 
 static void send_redirect( int client_socket, char *uri ) {
 	const char redirect_template[] = "HTTP/1.1 302 Found\r\nLocation: %s\r\n\r\n";
-	const int buffer_size = sizeof(redirect_template) + 100;
-	char buffer[ buffer_size+1];
-
-	if( strlen(uri) > 100 ) {
+	
+	int required_size = sizeof(redirect_template) + strlen(uri);
+	if(  required_size >= _file_to_serve_buf_size ) {
 		send( client_socket, _http_header_bad_request, sizeof(_http_header_bad_request), 0 );
 	} else {
-		sprintf( buffer, redirect_template, uri);		
-		send( client_socket, buffer, sizeof(buffer), 0 );
+		sprintf_s( _file_to_serve_buf, _file_to_serve_buf_size, redirect_template, uri);		
+		send( client_socket, _file_to_serve_buf, strlen(_file_to_serve_buf), 0 );
  	}
 }
 

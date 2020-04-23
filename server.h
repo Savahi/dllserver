@@ -5,6 +5,7 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+#include <limits>
 
 #define _WIN32_WINNT 0x501
 #include <WinSock2.h>
@@ -12,6 +13,9 @@
 
 #define SERVER_DLL_EXPORT
 #include "WebServer.hpp"
+
+#include "auth.h"
+#include "helpers.h"
 
 #define SRV_MAX_EXE_PATH 400
 #define SRV_HTML_ROOT_DIR "html\\"

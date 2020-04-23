@@ -1,7 +1,5 @@
 #include "server.h"
 
-//#pragma comment(lib, "Ws2_32.lib")
-
 using std::cerr;
 using std::endl;
 
@@ -108,8 +106,12 @@ static int server( void )
 
 	int client_socket = INVALID_SOCKET;
 
-	strcpy( _html_root_path, _exePath);
-	strcat( _html_root_path, "\\" );
+	if( _exePath != nullptr ) { 
+		strcpy( _html_root_path, _exePath);
+		strcat( _html_root_path, "\\" );
+	} else {
+		_html_root_path[0] = '\x0';
+	}
 	strcat( _html_root_path, SRV_HTML_ROOT_DIR );
 
 	for (;;) {

@@ -132,7 +132,6 @@ int callback ( ServerData *sd ) {
 
 
 static char* users_and_passwords [] = { "admin", "admin", 0};
-char* MPath = "C:\\Users\\lgirs\\Desktop\\papa\\spider\\server\\dll";
 static StartServerData Data;
 
 int main (int argc, char** argv)
@@ -142,7 +141,7 @@ int main (int argc, char** argv)
   Data.IP = "127.0.0.1";
   Data.Port = "8000";
   Data.UsersPasswords = users_and_passwords;
-  Data.ExePath = MPath;
+  Data.ExePath = nullptr;
   Data.Message = 0;
 
 

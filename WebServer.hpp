@@ -27,10 +27,6 @@ struct ServerData {
   size_t sp_response_buf_size;   // SP might return the size of the response,
   bool sp_free_response_buf;    // SP might ask the server to free the memory allocated for it's response,
   bool sp_response_file;
-  
-  ServerData() {
-	  sp_response_file = false;
-  }
 };
 
 struct StartServerData {
