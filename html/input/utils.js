@@ -1,301 +1,3 @@
-function ifSynchronizedCheck() {
-	let xmlhttpSynchro = new XMLHttpRequest();
-
-	xmlhttpSynchro.onreadystatechange = function() {
-	    if (this.readyState == 4 ) {
-	    	if( this.status == 200 ) {
-				if( this.responseText == '1' ) { 	// Synchronized
-					_dataSynchronized = 1;
-        		} else if( this.responseText == '0' ) { 	// Not synchronized
-					_dataSynchronized = 0;
-				} else {  	// Not authorized (the session has expired...)
-					window.location.href = "/login.html";
-				}
-			} else {
-				_dataSynchronized = -1;
-			}
-			displaySynchronizedStatus();
-	    } 
-	};
-	let requestUrl = _requests.check_synchro + ((window.location.search.length > 0) ? (window.location.search) : ''); 
-	xmlhttpSynchro.open( 'GET', requestUrl, true );
-	xmlhttpSynchro.send();
-}
-
-
-function displaySynchronizedStatus() {
-	let container = document.getElementById('toolboxSynchronizedDiv');
-	let icon = document.getElementById('toolboxSynchronizedIcon');
-
-	let scheduleNextCheck = true;
-	if( !('editables' in _data) ) {
-		icon.setAttribute('src',_iconSynchronizationUnapplied); // _iconEmpty
-		container.title = _texts[_lang].synchronizationUnappliedMessage;
-	} else {
-		if( _data.editables.length == 0 ) {
-			icon.setAttribute('src',_iconSynchronizationUnapplied); // _iconEmpty
-			container.title = _texts[_lang].synchronizationUnappliedMessage;
-		}
-		else if( _dataSynchronized == -1 || _dataSynchronized == 0 ) {
-			icon.setAttribute('src', _iconNotSynchronized);
-			container.title = _texts[_lang].unsynchronizedMessage;
-			if( _dataSynchronized == 0 ) {
-				displayConfirmationBox( _texts[_lang].askForSynchronizationMessage, function() { loadData(); } );
-				scheduleNextCheck = false;
-			} 
-		} else {
-			icon.setAttribute('src',_iconSynchronized); // _iconEmpty	
-			container.title = _texts[_lang].synchronizedMessage;
-		}
-	}
-	if(scheduleNextCheck)
-		setTimeout( ifSynchronizedCheck, _synchronizationRate );
-} 
-
-
-function createForeignObjectWithText( text, x, y, width, height, properties ) {
-	let foreignObject = createForeignObject( x, y, width, height, properties );
-	foreignObject.appendChild( document.createTextNode(text) );
-	return foreignObject;
-}
-
-
-function createForeignObject( x, y, width, height, properties ) {
-	let foreignObject = document.createElementNS(NS, 'foreignObject'); 
-	foreignObject.setAttribute("x",x); 
-	foreignObject.setAttribute("y",y); 
-	foreignObject.setAttribute("width",width); 
-	foreignObject.setAttribute("height",height); 
-	if( 'id' in properties ) {
-		foreignObject.setAttributeNS(null, 'id', properties.id );		
-	} 
-	if( 'fontSize' in properties ) {
-		foreignObject.setAttributeNS(null,'font-size', properties.fontSize );
-	}
-	if( 'textAlign' in properties ) {
-		foreignObject.setAttributeNS(null,'text-align', properties.textAlign );
-	}
-	if( 'color' in properties ) {
-		foreignObject.setAttributeNS(null,'color', properties.color );
-	}	
-	return foreignObject;
-}
-
-
-function createRhomb( x, top, height, properties ) {
-	return createPolygon( calcRhombCoords(x, top, height), properties );
-}
-
-function calcRhombCoords( x, top, height ) {
-	let inc = 2;
-	top -= inc;
-	height += inc*2;
-	let halfWidth = Math.floor(height / 2.0);
-	let halfHeight = halfWidth;
-	let points = (x - halfWidth) + " " + (top + halfHeight) + " " + x + " " + top;
-	points += " " + (x + halfWidth) + " " + (top + halfHeight) + " " + x + " " + (top + height);
-	return points;
-}
-
-
-function createRect( x, y, width, height, properties ) {
-	let rect = document.createElementNS(NS, 'rect');
-	if( 'id' in properties ) {
-		rect.setAttributeNS(null, 'id', properties.id );		
-	} 
-	rect.setAttributeNS(null, 'x', x ); 
-	rect.setAttributeNS(null, 'width', width ); 
-	rect.setAttributeNS(null, 'y', y ); 
-	rect.setAttributeNS(null, 'height', height );
-	if( 'fill' in properties ) {
-		rect.setAttributeNS(null, 'fill', properties.fill );
-	} 
-	if( 'stroke' in properties ) {
-		rect.setAttributeNS(null, 'stroke', properties.stroke );
-	}
-	if( 'strokeWidth' in properties ) {
-		rect.setAttributeNS(null, 'stroke-width', properties.strokeWidth );		 
-	}
-	if( 'opacity' in properties ) {
-		rect.setAttributeNS(null, 'opacity', properties.opacity );
-	} 
-	return rect;
-}
-
-function setRectCoords( rect, x, y, width, height ) {
-	rect.setAttributeNS(null,'x',x);
-	rect.setAttributeNS(null,'y',y);
-	rect.setAttributeNS(null,'width',width);
-	rect.setAttributeNS(null,'height',height);  
-}
-
-function createPolygon( points, properties ) {
-	let polygon = document.createElementNS(NS, 'polygon');
-	polygon.setAttributeNS(null, 'points', points );			
-	if( 'id' in properties ) {
-		polygon.setAttributeNS(null, 'id', properties.id );		 
-	} 
-	if( 'fill' in properties ) {
-		polygon.setAttributeNS(null, 'fill', properties.fill );
-	} 
-	if( 'stroke' in properties ) {
-		polygon.setAttributeNS(null, 'stroke', properties.stroke );
-	}
-	if( 'strokeWidth' in properties ) {
-		polygon.setAttributeNS(null, 'stroke-width', properties.strokeWidth );		  
-	}
-	if( 'opacity' in properties ) {
-		polygon.setAttributeNS(null, 'opacity', properties.opacity );
-	} 
-	return polygon;
-}
-
-
-function createText( textString, x, y, properties ) {
-	let text = document.createElementNS(NS, 'text');
-	text.setAttributeNS(null,'x', x );
-	text.setAttributeNS(null,'y', y );
-	if( 'id' in properties ) {
-		let temp = document.getElementById(properties.id);
-		text.setAttributeNS(null, 'id', properties.id );		
-
-	} 
-	if( 'fontSize' in properties ) {
-		//text.setAttributeNS(null,'font-size', properties.fontSize );
-		text.style.fontSize = properties.fontSize;
-	}
-	if( 'fontWeight' in properties ) {
-		//text.setAttributeNS(null,'font-weight', properties.fontWeight );
-		text.style.fontWeight = properties.fontWeight;
-	}
-	if( 'fontStyle' in properties ) {
-		//text.setAttributeNS(null,'font-style', properties.fontStyle );		
-		text.style.fontStyle = properties.fontStyle;
-	}
-	if( 'textAnchor' in properties ) {
-		text.setAttributeNS(null,'text-anchor', properties.textAnchor );
-	}
-	if( 'textLength' in properties ) {
-		if( properties.textLength ) {
-			text.setAttributeNS(null,'textLength', properties.textLength );		 
-		}
-	}
-	if( 'lengthAdjust' in properties ) {
-		text.setAttributeNS(null,'lengthAdjust', properties.lengthAdjust );
-	}
-	if( 'alignmentBaseline' in properties ) {
-		text.setAttributeNS(null,'alignment-baseline', properties.alignmentBaseline );
-	}
-	if( 'preserveAspectRatio' in properties ){
-		text.setAttributeNS(null,'preserveAspectRatio', properties.preserveAspectRatio );
-	}
-	if( 'stroke' in properties) {
-		text.setAttributeNS(null,'stroke', properties.stroke );
-	}
-	if( 'strokeWidth' in properties ) {
-		text.setAttributeNS(null,'stroke-width', properties.strokeWidth );
-	} else {
-		text.setAttributeNS(null,'stroke-width', 0 );
-	}
-	if( 'fill' in properties ) {
-		text.setAttributeNS(null,'fill', properties.fill );
-	}
-	if( 'clipPath' in properties ) {
-		text.setAttributeNS(null,'clip-path', properties.clipPath );
-	}
-	text.appendChild( document.createTextNode( textString ) );
-	return text;
-}
-
-function createLine( x1, y1, x2, y2, properties ) {
-	let line = document.createElementNS(NS, 'line');
-	if( 'id' in properties ) {
-		line.setAttributeNS(null, 'id', properties.id );		
-	} 
-	if( 'endingArrow' in properties ) {
-		if( properties.endingArrow ) {
-			line.setAttributeNS(null,'marker-end', 'url(#arrow)');
-		}
-	}
-	line.setAttributeNS(null, 'x1', x1 ); 
-	line.setAttributeNS(null, 'y1', y1 ); 
-	line.setAttributeNS(null, 'x2', x2 ); 
-	line.setAttributeNS(null, 'y2', y2 );
-	if( 'fill' in properties ) {
-		line.setAttributeNS(null, 'fill', properties.fill );
-	} 
-	if( 'stroke' in properties ) {
-		line.setAttributeNS(null, 'stroke', properties.stroke );
-	}
-	if( 'strokeWidth' in properties ) {
-		line.setAttributeNS(null, 'stroke-width', properties.strokeWidth );		 
-	}
-	if( 'strokeDasharray' in properties ) {
-		line.setAttributeNS(null, 'stroke-dasharray', properties.strokeDasharray );				 
-	}
-	if( 'opacity' in properties ) {
-		line.setAttributeNS(null, 'opacity', properties.opacity );
-	} 
-	return line;
-}
-
-
-function createCircle( x, y, radius, properties ) {
-	let circle = document.createElementNS(NS, 'circle');
-	if( 'id' in properties ) {
-		circle.setAttributeNS(null, 'id', properties.id );		
-	} 
-	circle.setAttributeNS(null, 'cx', x ); 
-	circle.setAttributeNS(null, 'cy', y ); 
-	circle.setAttributeNS(null, 'r', radius ); 
-	if( 'fill' in properties ) {
-		circle.setAttributeNS(null, 'fill', properties.fill );
-	} 
-	if( 'stroke' in properties ) {
-		circle.setAttributeNS(null, 'stroke', properties.stroke );
-	}
-	if( 'strokeWidth' in properties ) {
-		circle.setAttributeNS(null, 'stroke-width', properties.strokeWidth );		 
-	}
-	if( 'opacity' in properties ) {
-		circle.setAttributeNS(null, 'opacity', properties.opacity );
-	} 
-	return circle;
-}
-
-
-function createSVG( x, y, width, height, properties ) {
-	let svg = document.createElementNS(NS,'svg');
-	svg.setAttributeNS(null,'x',x);
-	svg.setAttributeNS(null,'y',y);
-	svg.setAttributeNS(null,'width', width );
-	svg.setAttributeNS(null,'height', height );
-	if( 'fill' in properties ) {
-		svg.setAttributeNS(null, 'fill', properties.fill);	  
-	}
-	if( 'id' in properties ) {
-		svg.setAttributeNS(null, 'id', properties.id);	  
-	}
-	return svg; 
-}
-
-
-function initLinearGradient( stops, name ) {
-	let gradient = document.createElementNS(NS, 'linearGradient');
-	for( let i = 0 ; i < stops.length; i++ ) {
-		let stop = document.createElementNS(NS, 'stop');
-		stop.setAttribute('offset', stops[i].offset);
-		stop.setAttribute('stop-color', stops[i].color);
-		gradient.appendChild(stop);
-	}
-	gradient.id = name;
-	gradient.setAttribute('x1', '0');
-	gradient.setAttribute('x2', '1');
-	gradient.setAttribute('y1', '0');
-	gradient.setAttribute('y2', '0');
-	return gradient;
-}
-
 
 // Returns the number of week of the year
 function getWeekNumber(d) {
@@ -595,7 +297,10 @@ function padWithNChars( n, char ) {
 function spacesToPadNameAccordingToHierarchy( hierarchy ) {
 	let s = '';
 	for( let i = 0 ; i < hierarchy ; i++ ) {
-		s += '   '; // figure space: ' ', '·‧', '•', '⁌','|'
+		s += '&#8226;&nbsp;'; //'   '; // figure space: ' ', '·‧', '•', '⁌','|'
+	}
+	if( s.length > 0 ) {
+		s = "<span style='color:#7f7f7f; font-size:10px; font-weight:normal;'>" + s + "</span>";
 	}
 	return s;
 }
@@ -631,35 +336,10 @@ function printSVG() {
 	document.documentElement.style.setProperty('--header-height', '2px');
 	document.documentElement.style.setProperty('--toolbox-table-height', '2px');
 
-	let scrollThick = _settings.scrollThick;
-	_settings.scrollThick = 0;
-	_tableScrollSVG.setAttributeNS(null, 'height', 0 );
-	_ganttHScrollSVG.setAttributeNS(null, 'height', 0 );
-	_verticalScrollSVG.setAttributeNS(null, 'width', 0 );
-
-	initLayoutCoords();
-    drawTableHeader();
-    drawTableContent();
-    drawGantt();
-    drawTimeScale();
-	drawVerticalSplitter(true);
-
 	window.print(); 
 
-	_settings.scrollThick = scrollThick;
-	_tableScrollSVG.setAttributeNS(null, 'height', scrollThick );
-	_ganttHScrollSVG.setAttributeNS(null, 'height', scrollThick );
-	_verticalScrollSVG.setAttributeNS(null, 'width', scrollThick );
 	document.documentElement.style.setProperty('--header-height', headerHeight);
 	document.documentElement.style.setProperty('--toolbox-table-height', toolboxTableHeight);
-
-	initLayoutCoords();
-    drawTableHeader();
-    drawTableContent();
-    drawGantt();
-    drawTimeScale();
-	drawVerticalSplitter(true);
-
 
 	header.style.display = headerDisplayStyle;
 	toolbox.style.display = toolboxDisplayStyle;
@@ -752,80 +432,6 @@ function csvIntoJSON(s) {
 	return json;
 }
 
-function getShortFileName( name ) {
-	if( name === null ) {
-		return null;
-	}
-	let shortName;
-	let i = name.lastIndexOf('/');
-	if( i >= 0 ) { 
-  		shortName = name.substring(i + 1);
-	} else {
-		shortName = name;
-	}
-	return shortName;
-}
-
-
-function getFileNameExtension( fileName ) {
-	let index = fileName.lastIndexOf('.');	
-	if( index >= 0 && index < fileName.length - 1 ) {
-		return (fileName.substring(index+1));
-    }
-	return '';
-}
-
-
-function getFileType( fileName ) {
-	if( confirmFileNameIsAnImage(fileName) ) {
-		return 2;
-	}
-	if( confirmFileNameIsAVideo(fileName) ) {
-		return 3;
-	}
-	if( confirmFileNameIsADoc(fileName) ) {
-		return 1;
-	}
-	return 0;
-}
-
-function confirmFileNameIsAnImage( fileName ) {
-	let ext = getFileNameExtension( fileName );
-	if( ext.length == 0 ) {
-		return false;
-	}
-	ext = ext.toLowerCase();
-	if( ext === 'jpg' || ext === 'jpeg' || ext === 'png' || ext === 'bmp' || ext === 'gif' ) {
-		return true;
-	}
-	return false;
-}
-
-function confirmFileNameIsADoc( fileName ) {
-	let ext = getFileNameExtension( fileName );
-	if( ext.length == 0 ) {
-		return false;
-	}
-	ext = ext.toLowerCase();
-	if( ext === 'rtf' || ext === 'doc' || ext === 'docx' || ext === 'xls' || ext === 'xlsx' || 
-		ext === 'ppt' || ext === 'pptx' || ext === 'pptm' || ext === 'pdf' || ext === 'txt' ) {
-		return true;
-	}
-	return false;
-}
-
-function confirmFileNameIsAVideo( fileName ) {
-	let ext = getFileNameExtension( fileName );
-	if( ext.length == 0 ) {
-		return false;
-	}
-	ext = ext.toLowerCase();
-	if( ext === 'mp4' || ext === 'mpeg' || ext === 'wmv' || ext === 'mov' || ext === 'avi' ) {
-		return true;
-	}
-	return false;
-}
-
 
 function adjustDateTimeToFormat( dateTime, format ) {
 	if( !(format > 0) ) { // "format == 0 " stands for "date-only"
@@ -840,4 +446,74 @@ function adjustDateTimeToFormat( dateTime, format ) {
 		}
 	}
 	return dateTime;
+}
+
+
+function adjustDateTimeToFullFormat( dateTime ) {
+	let pattern = new RegExp('^ *[0-9]{2}' + _dateDelim + '[0-9]{2}' + _dateDelim + '[0-9]{4} *$');
+	if( pattern.test(dateTime) ) {  // ... if not ... 
+		dateTime += ' 00' + _timeDelim + '00';       // ... adding time.
+	}
+	return dateTime;
+}
+
+
+function getElementPosition(el) {
+	let lx=0, ly=0
+    for( ; el != null ; ) {
+		lx += el.offsetLeft;
+		ly += el.offsetTop;
+		el = el.offsetParent;    	
+    }
+    return {x:lx, y:ly};
+}
+
+function getClientX(e, defaultValue=null ) {
+	if( 'clientX' in e  ) {
+		return e.clientX;
+	}
+	if( 'touches' in e ) {
+		if( e.touches.length > 0 ) {
+			return e.touches[0].clientX;
+		}
+	}
+	return defaultValue;
+}
+
+function getClientY(e, defaultValue=null ) {
+	if( 'clientY' in e  ) {
+		return e.clientY;
+	}
+	if( 'touches' in e ) {
+		if( e.touches.length > 0 ) {
+			return e.touches[0].clientY;
+		}
+	}
+	return defaultValue;
+}
+
+function getPageX(e, defaultValue=null ) {
+	if( 'pageX' in e  ) {
+		return e.pageX;
+	}
+	if( 'touches' in e ) {
+		if( e.touches.length > 0 ) {
+			return e.touches[0].pageX;
+		}
+	}
+	return defaultValue;
+}
+
+
+function getTouchEventXY(e) {
+	if( 'touches' in e ) {
+		if( e.touches.length > 0 ) {
+			t = e.touches[0];
+			return [ t.clientX, t.clientY, t.pageX, t.pageY, t.offsetX, t.offsetY ];
+		}
+	}
+	if( e ) {
+		return [ e.clientX, e.clientY, e.pageX, e.pageY, e.offsetX, e.offsetY ];
+	}
+	return [ null, null, null, null, null, null ];
 }

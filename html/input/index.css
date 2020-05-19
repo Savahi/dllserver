@@ -1,13 +1,13 @@
 :root {
 	--header-height:40px;
 	--half-header-height:calc( var(--header-height) / 2 );
-	--toolbox-table-height:44px;
-	--toolbox-td-height:calc( var(--toolbox-table-height) - 12px );
-	--toolbox-img-height:calc( var(--toolbox-table-height) - 20px );
-	--toolbox-input-width:calc( var(--toolbox-td-height) * 1.75 );
-	--toolbox-input-font-size:calc( var(--toolbox-td-height) - 8px );
-	--editbox-font-size:90%;
-	--editbox-font-size-sm:80%;
+	--header-control-height:calc( var(--header-height) * 0.62 );
+	--data-table-head-font-size:0.9em;
+	--data-table-body-font-size:0.9em;
+	--data-table-body-editable-font-size:0.95em;
+	--editbox-font-size-lg:1rem;
+	--editbox-font-size:0.9rem;
+	--editbox-font-size-sm:0.85rem;
 	--ok-color: #4f4f4f;
 	--cancel-color: #bf2f2f;
 	--error-color: #b2f2f2;
@@ -28,56 +28,56 @@
 	div { box-sizing: border-box; margin:0px; padding:0px; }
 	table { box-sizing: border-box; margin:0px; padding:0px; }
 	td { padding:0px; }
-
 	a {
 		text-decoration:none; color:white;
 	}
 
-	.header {
-		height:var(--header-height); width:100%; margin:0; padding:0; display:block; box-sizing:border-box;
-		border-bottom:0px solid var(--dark-color); 
-		background-image:linear-gradient(to right, rgb(120,120,120), rgb(20,20,20), rgb(120,120,120));
+	#header {
+		width:100%; min-width:100%; margin:0; padding:0; display:block; box-sizing:border-box;
+		border-bottom:2px solid #bfbfbf; 
+		background-image:linear-gradient(to right, rgb(240,240, 240), rgb(230,230,230), rgb(150,150,150));
 	}
-	.menu {
-		width:15%; height:var(--header-height); margin:0px 0px 0px 0px; padding:0px; box-sizing:border-box; display:block; float:left; 
-		text-align:center; 
+	#header::after {
+  		content: ""; clear: both; display: table;
 	}
-	.menu div {
-		display:block; float:left; position:relative; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; 
-		width:25%; height:100%; margin:0px; padding:4px 0px 4px 0px; 
-		color:var(--lightgray-color); font-size:var(--half-header-height); text-align:center;
-	}
-	.menu div.normal { color:white; border:0px dotted var(--gray-color); }
-	.menu div.active { color:white; /*background-color:var(--black-color);*/ }
 
-	/*
-	.menu div img { outline:1px solid var(--gray-color); border:1px solid var(--darkgray-color); height:var(--half-header-height); padding:4px; }
-	.menu div.active img { outline:1px solid var(--gray-color); border:1px solid var(--dark-color); }
-	*/
-	.menu div img { border:1px dotted var(--black-color); border-radius:4px; height:var(--half-header-height); padding:4px; opacity:0.5; }
-	.menu div img:hover { opacity:0.75; }
-	.menu div.active img { border:1px dotted var(--black-color); opacity:1.0; }
+	#headerControls {
+		max-width:20%; margin:0; padding:0; box-sizing:border-box; overflow:hidden;
+		display:inline-block; float:left; text-align:left; height:var(--header-height); 
+	}
+	#headerControls div {
+		float:left; margin:4px 4px 0px 4px;
+		height:var(--header-control-height);
+	}
+	#headerControls div img {
+		border:1px solid white; border-radius:4px; padding:2px;
+		height:var(--header-control-height);
+	}
+	#headerControls div:first-child {
+		border:0px;
+	}
 
-	.project-details {
-		width:65%; height:var(--header-height); margin:0px; display:block; float:left; 
-		text-align:center; font-size:11px; color:white;
+	#headerProject {
+		max-width:80%; height:var(--header-height); overflow:hidden; margin:0px; display:block; float:left;
+		padding-left:12px; text-align:left; font-size:11px; color:black;
 	}
-	.project-details div.project-name {
-		width:100%; height:var(--half-header-height); margin:0px; padding-top:2px; display:block; 
-		white-space:nowrap; text-overflow:ellipsis; overflow:hidden;  
-		text-align:center; font-size:16px;
+	#headerProjectName {
+		width:100%; height:var(--half-header-height); margin:0px; padding-top:2px; display:inline-block; 
+		white-space:nowrap; text-overflow:ellipsis; text-align:left; font-size:16px;
 	}
-	.project-details div.project-time-and-version {
-		width:100%; height:var(--half-header-height); display:block; 
+	#headerProjectUserTimeVersion {
+		width:100%; height:var(--half-header-height); display:inline-block; float:left;
 		white-space:nowrap; text-overflow:ellipsis; overflow:hidden;
-		font-family:courier; text-align:center; font-size:11px; margin:0; padding:2px;
+		font-family:courier; text-align:left; font-size:11px; margin:0; padding:2px;
 	}
 
-	.project-user {
-		width:20%; height:var(--header-height); margin:0px; padding:2px; display:block; float:left;
-		white-space:nowrap; text-overflow:ellipsis; overflow:hidden;  
-		vertical-align:middle; color:white; text-align:center;
-		font-size:12px;
+	@media screen and (max-width: 800px) {
+		#headerControls { 
+			max-width:20%; text-align:left;
+		}
+		#headerProject { 
+			max-width:80%; text-align:left;
+		}
 	}
 
 	.content {
@@ -96,6 +96,34 @@
 	}
 	.toolbox div img:hover { opacity:1.0; }
 
+	#dataTableHead td { 
+		font-size: var(--data-table-head-font-size); 
+		font-weight: normal;
+		text-align: center;
+		vertical-align: top;
+		border-right: 1px solid #efefef;
+		border-bottom: 1px solid #efefef;
+		padding: 2px;
+	}
+
+	#dataTableBody td { 
+		font-size: var(--data-table-body-font-size); 
+		font-weight: normal;
+		text-align: center;
+		vertical-align: top;
+		border-right: 1px solid #efefef;
+		border-bottom: 1px solid #efefef;
+		padding: 2px;
+	}
+
+	#dataTableBody td.dataTableEditable {
+		cursor:pointer !important; position:relative !important; border-bottom: 1px solid #afafaf !important;  padding-right: 12px !important; 
+		font-size: var(--data-table-body-editable-font-size); font-style: italic !important; 
+	}
+	#dataTableBody td.dataTableEditable .dataTableEditableMark {
+		position: absolute; bottom:0; right:0; font-size: 8px; text-align: right; 
+	}
+
 	button { box-sizing:border-box; margin:0px; border:1px dotted var(--darkgray-color); 
 		border-radius:4px; background-color:var(--lightlightgray-color); 
 		cursor: pointer; text-align:center; }
@@ -106,120 +134,108 @@
 	button.cancel { border-color: var(--cancel-color); color: var(--cancel-color); font-size:var(--editbox-font-size); }
 	button.cancel:hover { background: var(--cancel-color); color: white; }
 
-	.toolbox div {
-		display:inline-block;
-		height:var(--toolbox-td-height); padding:4px 6px 4px 6px; box-sizing:border-box; 
-		margin-left:6px; margin-right:6px; border-radius:8px;
-		cursor:default; text-align:center; font-size:var(--toolbox-img-height);
-		background-color:var(--lightgray-color); 
+	#editBox { 
+		position:absolute; left:0; top:0;
+		box-sizing:border-box; margin:0px; padding:0px; 
+		display:none; left:0; top:0; width:100%; height:50vh; 
 	}
-
-	.toolbox div input[type=text] {
-		width:var(--toolbox-input-width); height:var(--toolbox-input-font-size); box-sizing:border-box; 
-		text-align:left; font-size:var(--toolbox-input-font-size); 
-		margin:0px; padding:0px; border:0; background-color:var(--lightgray-color); 
+	
+	#editBoxContent { 
+		box-sizing:border-box; position:absolute; overflow:auto; display:block; margin:0px; padding:0px; 
+		vertical-align:top; width:100%; min-width:100%; min-height:100%; background-color:#ffffff;
 	}
-
-	toolbox div.toolbox-separator {
-		width:20px; height:var(--toolbox-td-height); box-sizing:border-box;
-		margin:0px 2px 0px 2px; padding:0px; border:0px solid gray; background-color:white; color:var(--dark-color);
+	#editBoxContent::after {
+  		content: ""; clear: both; display: table;
 	}
-	/*
-	.toolbox div label {
-		font-size:var(--toolbox-font-size); 
+	#editBoxPane1, #editBoxPane2 { 
+		box-sizing:border-box; position:relative; margin:0px; 
+		float:left; display:inline-block; text-align:left; vertical-align:top; 
+		background-color:#ffffff; font-size:var(--editbox-font-size); 
 	}
-	*/
-	table.toolbox {
-		width:100%; margin:0; padding:0; box-sizing:border-box; 
-		height:var(--toolbox-table-height);
-		background-color:white;
+	#editBoxPane2 div {
+		padding:4px;
 	}
-
-	table.toolbox td.toolbox-left {
-		white-space:nowrap; text-overflow:ellipsis; overflow:hidden;
-		width:90%; height:var(--toolbox-td-height); padding:2px 0px 0px 24px; text-align:left;
+	@media screen and (max-width: 800px) {
+		#editBoxPane1 { 
+			width:100%; max-width:100%; min-width:100%; 
+		}
+		#editBoxPane2 { 
+			width:100%; max-width:100%; min-width:100%;
+		}
 	}
-	table.toolbox td.toolbox-left div {
-		float:left;
-	}
-	table.toolbox td.toolbox-left div:first-child {
-		border:0px;
-	}
-	table.toolbox td.toolbox-left div input[type=text] {
-		float:left; text-align:left;
-	}
-
-	table.toolbox td.toolbox-right {
-		white-space:nowrap; text-overflow:ellipsis; overflow:hidden;
-		width:10%; height:var(--toolbox-td-height); padding:0px 24px 0px 0px; text-align:right;
-	}
-	table.toolbox td.toolbox-right div {
-		float:right; 
-	}
-	table.toolbox td.toolbox-right div:first-child {
-		border:0px;
-	}
-	table.toolbox td.toolbox-right div input[type=text] {
-		text-align:left;		
-	}
-
-	#editBoxDetails { box-sizing: border-box; padding:4px; text-align:left; color:#4f4f4f; font-size:var(--editbox-font-size-sm); }
-
-	#editBoxInputs { box-sizing: border-box; text-align:right; margin-top:8px; }		
-
-	div.editBoxInputContainer {
-		width:100%; box-sizing: border-box; clear: both; text-align:right; display: table;
-	}
-
-	div.editBoxPromptDiv { 
-		width:50%; float:left; padding:0px 4px 0px 0px; text-align:right; font-size:var(--editbox-font-size); 
-	} 
-	div.editBoxInputDiv { 
-		width:50%; float:left; 
-	}		
-	@media only screen and (max-width: 600px) { 
-		div.editBoxPromptDiv { 
-			width:100%; float:left; text-align:left; font-size:var(--editbox-font-size);
-		} 
-		div.editBoxInputDiv { 
-			width:100%; float:left; 
+	@media screen and (min-width: 800px) {
+		#editBoxPane1 { 
+			width:60%; max-width:60%; min-width:60%; 
+		}
+		#editBoxPane2 { 
+			width:40%; max-width:40%; min-width:40%; padding-left:14px;
 		}
 	}
 
-	textarea.editBoxInput {
-		width:100%; font-size:var(--editbox-font-size); box-sizing: border-box;
-	}
-	input.editBoxInput {
-		width:100%; font-size:var(--editbox-font-size); border-radius:4px; box-sizing: border-box; border:1px dotted #d0d0d0;		
-	}
-	input.editBoxInputDateTime {
-		width:80%; font-size:var(--editbox-font-size); border-radius:4px; box-sizing: border-box; border:1px dotted #d0d0d0; float:left;		
-	}
-	div.editBoxInputCallCalendar {
-		width:20%; font-size:var(--editbox-font-size); box-sizing: border-box; float:left; cursor:pointer;
+	#editBoxMessage {
+		box-sizing: border-box; margin:0px 0px 12px 0px; width:100%; padding:4px; 
+		font-size:var(--editbox-font-size-sm); text-align:center; font-style:italic; color:#4f4f4f;
 	}
 
-	#editBoxFileUploadPane { width:100%; text-align:right; margin-top:12px; padding-top:0px; font-size:var(--editbox-font-size); }
-	#editBoxFileUploadPane input { display:hidden; width:0.1px; height:0.1px; margin:0; padding:0; }
+	#editBoxDetails { box-sizing: border-box; margin:0px; padding:4px; text-align:left; color:#4f4f4f; font-size:var(--editbox-font-size-sm); }
 
-	table.editBoxFileUpload { width:auto; float:right; overflow-y:hidden; border-radius:4px; border:1px solid #d0d0d0; background-color:var(--lightlightgray-color); height:62px; max-height:62px; }
-    table.editBoxFileUpload td { box-sizing:border-box; width:20px; height:14px; max-height:14px;  text-align:center; padding:1px; }
-    table.editBoxFileUpload td div { box-sizing:border-box; cursor:pointer; height:14px; max-height:14px; font-size:12px; border-radius:4px; }
-    table.editBoxFileUpload th { box-sizing:border-box; padding:1px; max-width:60px; width:60px; max-height:48px; height:48px; font-weight:normal; font-size:10px; }	
-    table.editBoxFileUpload img { max-width:60px; max-height:34px; height:34px; border-radius:4px; }	
-	table.editBoxFileUpload input { display:none; width:0.1px; height:0.1px; margin:0; padding:0; }
-	table.editBoxFileUpload label { cursor:pointer; }
-	.editBoxFileDelete { display:none; color:var(--cancel-color); }
-	.editBoxFileReset { display:none; }
-	.editBoxFileName { overflow:hidden; max-width:62px; max-height: 14px; margin:0; padding:0; color:var(--gray-color); text-align:left; font-size:12px; cursor:pointer; }
+	#editBoxInputs { box-sizing: border-box; margin:0px; text-align:right; }		
+
+	#editBoxInputs .editBoxInputContainer {
+		box-sizing: border-box; margin:0px; width:100%; min-width:100%;
+	}
+	#editBoxInputs .editBoxInputContainer::after {
+  		content: ""; clear: both; display: table;
+	}
+
+	#editBoxInputs .editBoxPromptDiv {
+		position:relative; 
+		box-sizing: border-box; margin:0px; 
+		width:50%; color:#7f7f7f; float:left; display:inline-block; padding:4px 4px 0px 4px; text-align:right; font-size:var(--editbox-font-size); 
+	} 
+	#editBoxInputs .editBoxInputDiv { 
+		position:relative;
+		box-sizing: border-box; margin:0px; padding:0px 4px 4px 4px; 
+		width:50%; float:left; display:inline-block; font-size:var(--editbox-font-size-lg); 
+	}		
+
+	#editBoxInputs textarea.editBoxInput {
+		box-sizing: border-box; margin:0px; 
+		width:100%; padding:4px; font-size:var(--editbox-font-size);  
+		color:blue;
+	}
+	#editBoxInputs input.editBoxInput {
+		box-sizing: border-box; margin:0px; 
+		width:100%; padding:4px; font-size:var(--editbox-font-size-lg); border-radius:4px; border:1px dotted #d0d0d0;		
+		color:blue;
+	}
+	#editBoxInputs input.editBoxInputDateTime {
+		left:0; top:0; box-sizing: border-box; margin:0px; text-align:right;
+		width:100%; padding:4px; font-size:var(--editbox-font-size-lg); border-radius:4px; border:1px dotted #d0d0d0;	
+		color:blue;
+	}
+	#editBoxInputs .editBoxInputCallCalendar {
+		position:absolute; left:4px; top:0; box-sizing: border-box; margin:0px; padding:1px; cursor:pointer; 
+		max-width:20%; border-radius:4px; border:1px dotted #d0d0d0;  
+		background-color:#bfbfbf; font-size:var(--editbox-font-size-lg); 
+		font-weight:bold;
+	}
+
+	@media screen and (max-width: 800px) { 
+		#editBoxInputs .editBoxPromptDiv { 
+			width:100%; min-width:100%; text-align:left; font-size:var(--editbox-font-size);
+		}                          
+		#editBoxInputs .editBoxInputDiv { 
+			width:100%; min-width:100%;  
+		}
+		#editBoxInputs textarea { min-width:100%; }
+		#editBoxInputs input { min-width:100%; }
+	}
+
 
 	h1 { margin:2% 1% 1% 1%; font-size:140%; color:var(--dark-color); font-variant:small-caps; }
 
 	dim { border-color:var(--lightgray-color); color:var(--lightgray-color); }
-
-	.clearfix::after {
-	    content: ""; clear: both; display: table;
-	}
 
 	.ok-color { color: var(--ok-color); }
 	.cancel-color { color: var(--cancel-color); }

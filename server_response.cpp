@@ -1,29 +1,35 @@
 #include "server.h"
 
-static const int _uri_buf_size = 400;		// Buffer size for uri
-static const int _get_buf_size = 4000;		// Buffer size for get request
-static const int _html_file_path_buf_size = SRV_MAX_HTML_ROOT_PATH + 1 + _uri_buf_size + 1;
+static constexpr int _uri_buf_size = 400;		// Buffer size for uri
+static constexpr int _get_buf_size = 4000;		// Buffer size for get request
+static constexpr int _html_file_path_buf_size = SRV_MAX_HTML_ROOT_PATH + 1 + _uri_buf_size + 1;
 
-static const int _file_to_serve_buf_size = 10000;
-static char _file_to_serve_buf[ _file_to_serve_buf_size+1];
+static constexpr int _content_to_serve_buf_size = 10000;
+static char _content_to_serve_buf[ _content_to_serve_buf_size+1];
 
 static constexpr int _max_response_size = 99999999;
 static constexpr int _max_response_size_digits = 8;
 
-constexpr int _mime_buf_size = MIME_BUF_SIZE;
-char _mime_buf[_mime_buf_size+1];
+static constexpr int _mime_buf_size = MIME_BUF_SIZE;
+static char _mime_buf[_mime_buf_size+1];
 
-static const char _http_header_template[] = "HTTP/1.1 200 OK\r\nVersion: HTTP/1.1\r\nContent-Type:%s\r\nContent-Length:%lu\r\n\r\n";
-static const int _http_header_buf_size = sizeof(_http_header_template) + _mime_buf_size + _max_response_size_digits; 
+static constexpr char _http_header_template[] = "HTTP/1.1 200 OK\r\nVersion: HTTP/1.1\r\nContent-Type:%s\r\nContent-Length:%lu\r\n\r\n";
+static constexpr int _http_header_buf_size = sizeof(_http_header_template) + _mime_buf_size + _max_response_size_digits; 
 
-static const char _http_empty_message[] = "HTTP/1.1 200 OK\r\nContent-Length:0\r\n\r\n";
-static const char _http_authorized[] = "HTTP/1.1 200 OK\r\nContent-Length:1\r\n\r\n1";
-static const char _http_not_authorized[] = "HTTP/1.1 200 OK\r\nContent-Length:1\r\n\r\n0";
-static const char _http_synchro_not_authorized[] = "HTTP/1.1 200 OK\r\nContent-Length:2\r\n\r\n-1";
-static const char _http_logged_out[] = "HTTP/1.1 200 OK\r\nContent-Length:1\r\n\r\n1";
-static const char _http_header_bad_request[] = "HTTP/1.1 400 Bad Request\r\nVersion: HTTP/1.1\r\nContent-Length:0\r\n\r\n";
-static const char _http_header_not_found[] = "HTTP/1.1 404 Not Found\r\nVersion: HTTP/1.1\r\nContent-Length:0\r\n\r\n";
-static const char _http_header_failed_to_serve[] = "HTTP/1.1 501 Internal Server Error\r\nVersion: HTTP/1.1\r\nContent-Length:0\r\n\r\n";
+static constexpr char _http_redirect_template[] = "HTTP/1.1 302 Found\r\nLocation: %s\r\n\r\n";
+
+static constexpr char _http_empty_message[] = "HTTP/1.1 200 OK\r\nContent-Length:0\r\n\r\n";
+static constexpr char _http_authorized[] = "HTTP/1.1 200 OK\r\nContent-Length:1\r\n\r\n1";
+static constexpr char _http_not_authorized[] = "HTTP/1.1 200 OK\r\nContent-Length:1\r\n\r\n0";
+static constexpr char _http_synchro_not_authorized[] = "HTTP/1.1 200 OK\r\nContent-Length:2\r\n\r\n-1";
+static constexpr char _http_logged_out[] = "HTTP/1.1 200 OK\r\nContent-Length:1\r\n\r\n1";
+static constexpr char _http_header_bad_request[] = "HTTP/1.1 400 Bad Request\r\nVersion: HTTP/1.1\r\nContent-Length:0\r\n\r\n";
+static constexpr char _http_header_not_found[] = "HTTP/1.1 404 Not Found\r\nVersion: HTTP/1.1\r\nContent-Length:0\r\n\r\n";
+static constexpr char _http_header_failed_to_serve[] = "HTTP/1.1 501 Internal Server Error\r\nVersion: HTTP/1.1\r\nContent-Length:0\r\n\r\n";
+
+static constexpr char _http_ok_options_header[] = 
+		"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\n"
+		"Access-Control-Allow-Headers: Content-Type\r\n\r\n";
 
 class ResponseWrapper {
 	public:
@@ -69,10 +75,7 @@ static void querySPAndPrepareResponse( callback_ptr callback, char *uri, char *s
 static void send_redirect( int client_socket, char *uri );
 
 #define AUTH_URI_NUM 4
-static char *_auth_uri[] = { "/index", "/gantt/", "/input/", "/dashboard/" };
-
-static const int _login_try_message_buffer_size = _http_header_buf_size + AUTH_SESS_ID_LEN + 1;
-static char _login_try_message_buffer[ _login_try_message_buffer_size+1 ];
+static constexpr char *_auth_uri[] = { "/index", "/gantt/", "/input/", "/dashboard/" };
 
 
 void server_response( int client_socket, char *socket_request_buf, int socket_request_buf_size, 
@@ -83,7 +86,7 @@ void server_response( int client_socket, char *socket_request_buf, int socket_re
 	bool is_get = false;
 	static char get[_get_buf_size+1];
 	bool is_options = false;
-	int uri_status = getUriToServe(socket_request_buf, uri, _uri_buf_size, &is_get, get, _get_buf_size, &post, &is_options);
+	int uri_status = get_uri_to_serve(socket_request_buf, uri, _uri_buf_size, &is_get, get, _get_buf_size, &post, &is_options);
 
 	if (uri_status != 0) { 	// Failed to parse uri - closing socket...
 		return;
@@ -92,6 +95,11 @@ void server_response( int client_socket, char *socket_request_buf, int socket_re
 	server_error_message("server: requested uri=" + std::string(uri) );
 	char *sess_id = nullptr;
 	char *user = nullptr;
+	
+	if( is_options ) { // An OPTIONS request - allowing all
+		send(client_socket, _http_ok_options_header, strlen(_http_ok_options_header), 0);
+		return;
+	}	
 
 	if( strcmp(uri,"/.check_connection") == 0 ) { 	// A system message simply to check availability of the server.
 		send(client_socket, _http_empty_message, strlen(_http_empty_message), 0);
@@ -116,21 +124,17 @@ void server_response( int client_socket, char *socket_request_buf, int socket_re
 	if( strcmp(uri,"/.login") == 0 ) { 	// A login try?
 		if( post != nullptr ) {
 			get_user_and_pass_from_post( post, post_user, AUTH_USER_MAX_LEN, post_pass, AUTH_USER_MAX_LEN );
-			//server_error_message( std::string("************************************** post_user: ") + std::string(post_user) + std::string("\n") );
-			//server_error_message( std::string("************************************** post_pass: ") + std::string(post_pass) + std::string("\n") );
 			sess_id = auth_do(post_user, post_pass, users_and_passwords);
 			if( sess_id != nullptr ) { 	// Login try ok - sending sess_id 	
 				user = auth_get_user();
-				sprintf_s( _login_try_message_buffer, _login_try_message_buffer_size, 
-					_http_header_template, "text/plain", strlen(sess_id) );
-				//server_error_message( std::string("************************************** sess: ") + std::string(sess_id) );
-				strcat( _login_try_message_buffer, sess_id );
-				send(client_socket, _login_try_message_buffer, strlen(_login_try_message_buffer), 0);
+				sprintf_s( _content_to_serve_buf, _content_to_serve_buf_size, _http_header_template, "text/plain", strlen(sess_id) );
+				strcat_s( _content_to_serve_buf, _content_to_serve_buf_size, sess_id );
+				send(client_socket, _content_to_serve_buf, strlen(_content_to_serve_buf), 0);
 				return;
 			} 
 		}
-		sprintf_s( _login_try_message_buffer, _login_try_message_buffer_size, _http_header_template, "text/plain", 0 );
-		send(client_socket, _login_try_message_buffer, strlen(_login_try_message_buffer), 0);
+		sprintf_s( _content_to_serve_buf, _content_to_serve_buf_size, _http_header_template, "text/plain", strlen(sess_id) );
+		send(client_socket, _content_to_serve_buf, strlen(_content_to_serve_buf), 0);
 		return;
 	} 
 	
@@ -299,7 +303,7 @@ static void querySPAndPrepareResponse(
 		readHtmlFileAndPrepareResponse( sdw.sd.sp_response_buf, nullptr, response );
 	} else {
 		if( binary_data_requested ) { 	// An image? (or other binary data for future use)
-			mimeSetType(uri, _mime_buf, _mime_buf_size);
+			set_mime_type(uri, _mime_buf, _mime_buf_size);
 		} else { 	// 
 			strcpy_s( _mime_buf, _mime_buf_size, "text/json; charset=utf-8" );
 		}
@@ -337,11 +341,11 @@ static void readHtmlFileAndPrepareResponse( char *file_name, char *html_source_d
 		fin.seekg(0, std::ios::beg);
 
 		if( file_size > 0 ) {
-			mimeSetType(file_name, _mime_buf, _mime_buf_size);	//
-			if( file_size <= _file_to_serve_buf_size ) { 	// The static buffer is big enough...
-				fin.read(_file_to_serve_buf, file_size); 
+			set_mime_type(file_name, _mime_buf, _mime_buf_size);	//
+			if( file_size <= _content_to_serve_buf_size ) { 	// The static buffer is big enough...
+				fin.read(_content_to_serve_buf, file_size); 
 				if( fin.gcount() == file_size ) {
-					response.body = _file_to_serve_buf;
+					response.body = _content_to_serve_buf;
 					response.body_len = file_size;
 					sprintf_s(response.header, _http_header_buf_size, 
 						_http_header_template, _mime_buf, (unsigned long)(file_size) );
@@ -378,15 +382,13 @@ static void readHtmlFileAndPrepareResponse( char *file_name, char *html_source_d
 }
 
 
-static void send_redirect( int client_socket, char *uri ) {
-	const char redirect_template[] = "HTTP/1.1 302 Found\r\nLocation: %s\r\n\r\n";
-	
-	int required_size = sizeof(redirect_template) + strlen(uri);
-	if(  required_size >= _file_to_serve_buf_size ) {
+static void send_redirect( int client_socket, char *uri ) {	
+	int required_size = sizeof(_http_redirect_template) + strlen(uri);
+	if(  required_size >= _content_to_serve_buf_size ) {
 		send( client_socket, _http_header_bad_request, sizeof(_http_header_bad_request), 0 );
 	} else {
-		sprintf_s( _file_to_serve_buf, _file_to_serve_buf_size, redirect_template, uri);		
-		send( client_socket, _file_to_serve_buf, strlen(_file_to_serve_buf), 0 );
+		sprintf_s( _content_to_serve_buf, _content_to_serve_buf_size, _http_redirect_template, uri);		
+		send( client_socket, _content_to_serve_buf, strlen(_content_to_serve_buf), 0 );
  	}
 }
 

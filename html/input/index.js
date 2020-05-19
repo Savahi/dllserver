@@ -1,21 +1,17 @@
 
 var NS = "http://www.w3.org/2000/svg";
 
-var _redrawAllMode=false;
 var _touchDevice = false;
-var _dateDMY=true;
-var _ganttMTime = -1;
-var _titlesPositioning = 'r';
-var _dataSynchronized = 1;
+var _dataSynchronized = null;
+var _ifSynchronizedInterval = null;
 var _synchronizationRate = 15*1000; 	// How often connection with the server is checked...
 var _data;
 
 var _lang="ru";
-var _dateDelim="";
-var _timeDelim="";
+var _dateDMY=true;
+var _dateDelim=".";
+var _timeDelim=":";
 var _dateFormat="";
-var _secondsInPixel=13708;
-var _expandToLevelAtStart=3;
 
 var _settings = {
 	tableHeaderFontColor:'#4f4f4f',	tableHeaderFillColor:'#cfcfdf', tableHeaderColumnSplitterColor:'#bfbfcf',
@@ -27,48 +23,20 @@ var _settings = {
 	webExportLineNumberColumnName:'f_WebExportLineNumber', webExportFileNamesColumn:'Folder', webExportUserFileNamesColumn:'FolderAlt',
 	webExportFileNameKey:'__FileName', webExportUserFileNameKey:'__UserFileName', webExportFilesNumber:4,
 	readableNumberOfOperations:28, maxNumberOfOperationOnScreen:50
-}
+};
 
 var _requests = { data:"/.input_data", logout:"/.logout", save:"/.save_input", check_synchro:"/.check_input_synchro" };
 
-var _zoomVerticallyInput = null; 
-var _zoomVerticallyPlusIcon = null;
-var _zoomVerticallyMinusIcon = null;
-
 var _containerDiv = null;
-var _containerSVG = null;
-var _tableContentSVG = null;
-var _tableContentSVGContainer = null;
-var _tableHeaderSVG = null;
 
 var _containerDivX, _containerDivY, _containerDivHeight, _containerDivWidth;
 
-var _visibleTop;      // Gantt & Table top visible operation 
-var _visibleHeight;   // Gantt & Table visible operations number
-var _notHiddenOperationsLength=0;
-
-var _tableContentSVGWidth;
-var _tableContentSVGHeight;
-var _tableContentSVGBkgr=null;
-
-var _tableHeaderSVGWidth;
-var _tableHeaderSVGHeight;
-var _tableHeaderSVGBkgr=null;
 var _tableOverallWidth=0;
 var _tableContentOverallHeight=0;
 
 window.addEventListener( "load", onWindowLoad );
 
 window.addEventListener( "contextmenu", onWindowContextMenu );
-
-window.addEventListener( "resize", onWindowResize );
-
-window.addEventListener( 'mouseup', onWindowMouseUp, true );
-window.addEventListener( 'touchcancel', onWindowMouseUp, true );
-window.addEventListener( 'touchend', onWindowMouseUp, true );
-window.addEventListener( 'mousemove', onWindowMouseMove );
-window.addEventListener( 'touchmove', onWindowMouseMove );	
-
 
 function loadData() {
 	if( document.location.host ) {
@@ -80,14 +48,12 @@ function loadData() {
 			    	try{
 				        _data = JSON.parse(this.responseText);
 			    	} catch(e) {
-			    		//alert('Error: ' + e.name + ":" + e.message + "\n" + e.stack + "\n" + e.cause);
 			    		errorParsingData = true;
 			    	}
 			    	if( errorParsingData ) { // To ensure data are parsed ok... // alert(this.responseText);
 						displayMessageBox( _texts[_lang].errorParsingData ); 
 						return;
 			    	}
-
 			    	let noOperations=false; 
 			    	if( !('operations' in _data) ) { // To ensure there are operations in data...
 			    		noOperations = true;
@@ -100,17 +66,12 @@ function loadData() {
 			    	}
 					// Adding the first column with expend tool
 					_data.table.unshift( { "name":"[]", "ref":"expandColumn", "width":2, "visible":true, "type":null,"format":null } );
-
-			    	if( _data.operations.length > 400 ) {
-			    		_redrawAllMode = true;
-			    	}
-
 					if( 'parameters' in _data ) {
 						if( 'lang' in _data.parameters )
 							_lang = _data.parameters.lang;
-						if( 'dateDelim' in _data.parameters )
+						if( 'dateDelim' in _data.parameters && _data.parameters.dateDelim !== '' )
 							_dateDelim = _data.parameters.dateDelim;
-						if( 'timeDelim' in _data.parameters )
+						if( 'timeDelim' in _data.parameters && _data.parameters.timeDelim !== '' )
 							_timeDelim = _data.parameters.timeDelim;
 						if( 'dateFormat' in _data.parameters )
 							_dateFormat = _data.parameters.dateFormat;
@@ -150,7 +111,6 @@ function loadData() {
 				}
 		    }
 		};
-		let requestUrl = _requests.data + ((window.location.search.length > 0) ? (window.location.search) : ''); 
 		xmlhttp.open("GET", _requests.data, true);
 		xmlhttp.setRequestHeader("Cache-Control", "no-cache");
 		xmlhttp.send();
@@ -160,7 +120,6 @@ function loadData() {
 
 function displayData() {	
 	displayHeaderAndFooterInfo();	
-	calcAndSetTableDimensions();
 	drawTableHeader(true);
 	drawTableContent(true);
 }
@@ -316,74 +275,18 @@ function initData() {
 		_data.operations[i].visible = true;
 	}
 
+	// Creating ref-type array and attaching it to the "data"
+	_data.refSettings = {};
+	for( let col = 0 ; col < _data.table.length ; col++ ) {
+		let o = { column: col, type: _data.table[col].type, format: _data.table[col].format, name: _data.table[col].name };
+		_data.refSettings[ _data.table[col].ref ] = o;
+	}
+
 	// Handling table columns widths
 	for( let col = 0 ; col < _data.table.length ; col++ ) { // Recalculating widths in symbols into widths in points 
 		let add = _settings.tableColumnHMargin*2 + _settings.tableColumnTextMargin*2;
 		_data.table[col].width = _data.table[col].width * _settings.tableMaxFontSize*0.5 + add;
 	}
-	_data.initialTable = []; // Saving table settings loaded from a local version of Spider Project
-	copyArrayOfObjects( _data.table, _data.initialTable );
-	// Reading cookies to init interface elements.
-	for( let col = 0 ; col < _data.table.length ; col++ ) {
-		let widthValue = getCookie( _data.table[col].ref + "Width", 'int' );
-		if( widthValue ) {
-			_data.table[col].width = widthValue;
-		}
-	}
-
-	// Reading and assigning the positions of columns.
-	let failed = false;
-	for( let col = 0 ; col < _data.table.length ; col++ ) {
-		let pos = getCookie( _data.table[col].ref + "Position", 'int' );
-		if( pos == null ) {
-			failed = true;
-			break;			
-		}
-		if( pos >= _data.table.length ) {
-			failed = true;
-			break;
-		}
-	}
-	if( !failed ) { // If all the positions for every column have been found in cookies...
-		let moveTo = _data.table.length-1;
-		for( let col = 0 ; col < _data.table.length ; col++ ) {
-			for( let cookie = 0 ; cookie < _data.table.length ; cookie++ ) { // Searching for the column to be moved to 'moveTo' position...
-				let pos = getCookie( _data.table[cookie].ref+"Position", 'int' );
-				if( pos == moveTo ) {
-					moveElementInsideArrayOfObjects( _data.table, cookie, moveTo );
-					moveTo -= 1;
-					break;
-				}
-			}
-		}
-	} else { // Deleting all the cookies that stores positions of columns...
-		for( let cookie = 0 ; cookie < _data.table.length ; cookie++ ) {
-			let cname = _data.table[cookie].ref+"Position";
-			if( getCookie(cname) != null ) {
-				deleteCookie( cname );
-			}
-		}
-	}
-
-	calcNotHiddenOperationsLength();
-
-	// Initializing zoom
-	let topAndHeight = validateTopAndHeight( 0, _settings.readableNumberOfOperations );
-	_visibleTop = topAndHeight[0];
-	_visibleHeight = topAndHeight[1];
-
-	// Reading and validating top and height saved in cookies
-	let gvt = getCookie('visibleTop', 'float');
-	let gvh = getCookie('visibleHeight', 'float');
-	//if( gvh ) { console.log('GVH FOUND!!!!' + gvh);}
-	if( gvt || gvh ) {
-		if( !gvt ) { gvt = _visibleTop; }
-		if( !gvh ) { gvh = _visibleHeight; }
-		let savedTopAndHeightValidated = validateTopAndHeight( gvt, gvh );
-		_visibleTop = savedTopAndHeightValidated[0];
-		_visibleHeight = savedTopAndHeightValidated[1];
-	}
-	displayYZoomFactor();
 
 	return(0);
 }
@@ -424,33 +327,12 @@ function initParents( iOperation ) {
 
 
 function initLayout() {
-	_zoomVerticallyInput = document.getElementById('toolboxZoomVerticallyInput'); 
-	_zoomVerticallyPlusIcon = document.getElementById('toolboxZoomVerticallyPlusIcon'); 
-	_zoomVerticallyMinusIcon = document.getElementById('toolboxZoomVerticallyMinusIcon'); 
-
 	_containerDiv = document.getElementById("containerDiv");
-	_containerSVG = document.getElementById("containerSVG");
-	_tableHeaderSVG = document.getElementById('tableHeaderSVG');
-	_tableContentSVG = document.getElementById('tableContentSVG');
 	
-	initLayoutCoords();
-
-	_containerDiv.addEventListener('selectstart', function() { event.preventDefault(); return false; } );
-	_containerDiv.addEventListener('selectend', function() { event.preventDefault(); return false; } );
-
-	_zoomVerticallyInput.addEventListener('input', function() { filterInput(this); } );
-	_zoomVerticallyInput.addEventListener('blur', function(e) { onZoomVerticallyBlur(this); } );
-	_zoomVerticallyPlusIcon.addEventListener('mousedown', function(e) { onZoomVerticallyIcon(this, 1, _zoomVerticallyInput); } );
-	_zoomVerticallyMinusIcon.addEventListener('mousedown', function(e) { onZoomVerticallyIcon(this, -1, _zoomVerticallyInput); } );
-	
-	return true;
-}
-
-function initLayoutCoords() {
-	let htmlStyles = window.getComputedStyle(document.querySelector("html"));
-	let headerHeight = parseInt( htmlStyles.getPropertyValue('--header-height') );
-	let toolboxTableHeight = parseInt( htmlStyles.getPropertyValue('--toolbox-table-height') );
-	_containerDivHeight = window.innerHeight - headerHeight - toolboxTableHeight;
+	let headerDiv = document.getElementById('header');
+	let headerBox = headerDiv.getBoundingClientRect();
+	let headerHeight = headerBox.height;	
+	_containerDivHeight = window.innerHeight - headerHeight;
 
 	_containerDiv.style.height = _containerDivHeight + "px";
 	_containerDiv.style.width = window.innerWidth + "px";
@@ -460,136 +342,41 @@ function initLayoutCoords() {
 	_containerDivWidth = window.innerWidth - _settings.containerHPadding*2;
 	_containerDiv.style.padding=`0px ${_settings.containerHPadding}px 0px ${_settings.containerHPadding}px`;
 
-	_containerSVG.setAttributeNS(null, 'x', 0 );
-	_containerSVG.setAttributeNS(null, 'y', 0 ); 
-	_containerSVG.setAttributeNS(null, 'width', _containerDivWidth ); // window.innerWidth-1  );
-	_containerSVG.setAttributeNS(null, 'height', _containerDivHeight ); 
+	_containerDiv.addEventListener('selectstart', function() { event.preventDefault(); return false; } );
+	_containerDiv.addEventListener('selectend', function() { event.preventDefault(); return false; } );
 
-	// Table Header
-	_tableHeaderSVG.setAttributeNS(null, 'x', 0 );
-	_tableHeaderSVG.setAttributeNS(null, 'y', 0 ); 
-	_tableHeaderSVGWidth = _containerDivWidth;
-	_tableHeaderSVG.setAttributeNS(null, 'width', _tableHeaderSVGWidth ); // window.innerWidth * 0.1 );
-	_tableHeaderSVGHeight = parseInt(_containerDivHeight * 0.07);
-	_tableHeaderSVG.setAttributeNS(null, 'height', _tableHeaderSVGHeight ); 
-    //_tableHeaderSVG.setAttribute('viewBox', `${_tableViewBoxLeft} 0 ${_tableHeaderSVGWidth} ${_tableHeaderSVGHeight}`);
-
-	// Table Content
-	_tableContentSVG.setAttributeNS(null, 'x', 0 );
-	_tableContentSVG.setAttributeNS(null, 'y', _tableHeaderSVGHeight ); 
-	_tableContentSVGWidth = _tableHeaderSVGWidth;
-	_tableContentSVG.setAttributeNS(null, 'width', _tableContentSVGWidth ); // window.innerWidth * 0.1 );
-	_tableContentSVGHeight = _containerDivHeight - _tableHeaderSVGHeight;
-	_tableContentSVG.setAttributeNS(null, 'height', _tableContentSVGHeight ); 
+	return true;
 }
 
 
 function displayHeaderAndFooterInfo() {
-	let projectName = document.getElementById('projectName');
+	let projectName = document.getElementById('headerProjectName');
 	projectName.innerText = _data.proj.Name;
 
-	let timeAndVersion = _data.proj.CurTime + " | " + _texts[_lang].version + ": " + _data.proj.ProjVer;
-	document.getElementById('projectTimeAndVersion').innerText = timeAndVersion;
-	if( _userName !== null ) {
-		let el = document.getElementById('projectUser');
-		//el.innerHTML = `${_userName}<br/><a href='${_requests.logout}'>[&#10132;]</a>`; //
-		el.innerHTML = _userName;
+	let time = null;
+	if( 'CurTime' in _data.proj ) {
+		if( _data.proj.CurTime.length > 0 ) {
+			time = _data.proj.CurTime;
+		}
+	} 
+	if( time === null ) {
+		let d = new Date( Date.now() );
+		time = dateIntoSpiderDateString( d );
 	}
+	let utime = null;
+	if( 'UploadTime' in _data.proj ) {
+		if( _data.proj.UploadTime.length > 0 ) {
+			time += '/' + _data.proj.UploadTime;
+		}
+	} 
 
-	document.getElementById('helpTitle').innerText = _texts[_lang].helpTitle; // Initializing help text	
-	document.getElementById('helpText').innerHTML = _texts[_lang].helpText; // Initializing help text	
+	let timeVersionUser = ((_userName !== null) ? `${_userName} | ` : '') + time + " | " + _texts[_lang].version + ": " + _data.proj.ProjVer;
+	document.getElementById('headerProjectUserTimeVersion').innerText = timeVersionUser;
 
-	document.getElementById('toolboxResetTableDimensionsDiv').title = _texts[_lang].resetTableDimensionsTitle;
-	document.getElementById('toolboxResetTableDimensionsIcon').setAttribute('src',_iconExportSettings);
-	document.getElementById('toolboxZoomVerticallyDiv').title = _texts[_lang].zoomVerticallyTitle;
-	document.getElementById('toolboxZoomVerticallyPlusIcon').setAttribute('src',_iconZoomVerticallyPlus);
-	document.getElementById('toolboxZoomVerticallyMinusIcon').setAttribute('src',_iconZoomVerticallyMinus);
-	document.getElementById('toolboxNewProjectDiv').title = _texts[_lang].titleNewProject;	
-	document.getElementById('toolboxNewProjectIcon').setAttribute('src',_iconNewProject);
+	//document.getElementById('headerControlsNewProjectDiv').title = _texts[_lang].titleNewProject;	
+	//document.getElementById('headerControlsNewProjectIcon').setAttribute('src',_iconNewProject);
 
 	displaySynchronizedStatus(); 		// Initializing syncho-data tool
-}
-
-
-function zoomY100() {
-	_visibleTop = 0;
-	_visibleHeight = _notHiddenOperationsLength; // _data.operations.length;
-	_zoomVerticallyInput.value = 100;
-	setCookie("visibleTop",_visibleTop);
-	setCookie("visibleHeight",_visibleHeight);
-} 
-
-
-function calcMinVisibleHeight() {
-	return (_notHiddenOperationsLength > 5) ? 5.0 : _notHiddenOperationsLength;	
-}
-
-
-function calcMaxVisibleHeight() {
-	let maxOp = _settings.maxNumberOfOperationOnScreen;
-	return (_notHiddenOperationsLength >= maxOp) ? maxOp : _notHiddenOperationsLength;
-
-}
-
-function zoomY( zoomFactorChange, centerOfZoom=0.5 ) {
-	let currentZoomFactor = _notHiddenOperationsLength / _visibleHeight;
-	let minVisibleHeight = calcMinVisibleHeight();
-	let maxZoomFactor = _notHiddenOperationsLength / minVisibleHeight;
-	let maxVisibleHeight = calcMaxVisibleHeight();
-	let minZoomFactor = _notHiddenOperationsLength / maxVisibleHeight;
-
-	let newZoomFactor;
-	if( typeof(zoomFactorChange) == 'string' ) { // Changing logarthmically...
-		if( zoomFactorChange === '+' ) {
-			newZoomFactor = currentZoomFactor * (1.0 + _settings.zoomFactor);
-		} else {
-			newZoomFactor = currentZoomFactor / (1.0 + _settings.zoomFactor);			
-		}
-	} else { // Changing incrementally...
-		newZoomFactor = currentZoomFactor + zoomFactorChange;
-	}
-
-	if( newZoomFactor > maxZoomFactor ) { 
-		newZoomFactor = maxZoomFactor;
-	}
-	if( newZoomFactor < minZoomFactor ) { 
-		newZoomFactor = minZoomFactor;
-	}
-	
-	let newHeight = _notHiddenOperationsLength / newZoomFactor;
-	
-	if( centerOfZoom < 0.1 ) {
-		centerOfZoom = 0.0;
-	} else if ( centerOfZoom > 0.9 ) {
-		centerOfZoom = 1.0;
-	} 
-	let newY = _visibleTop - (newHeight - _visibleHeight) * centerOfZoom;	
-	if( newY < 0 ) {
-		newY = 0;
-	} else if( newY + newHeight > _notHiddenOperationsLength ) {
-		newY = 0;
-	}
-	_visibleTop = newY;
-	_visibleHeight = newHeight;
-	displayYZoomFactor( newZoomFactor );
-}
-
-
-function displayYZoomFactor( zoomFactor=null ) {
-	if( zoomFactor === null ) {
-		zoomFactor = _notHiddenOperationsLength / _visibleHeight;
-	}
-	_zoomVerticallyInput.value = parseInt(zoomFactor*100.0 + 0.5);
-	setCookie("visibleTop",_visibleTop);
-	setCookie("visibleHeight",_visibleHeight);
-
-}
-
-
-function zoomYR( factorChange, centerOfZoom=0.5, setZoomFactor=null ) {
-	zoomY( factorChange, centerOfZoom, setZoomFactor );		
-	calcAndSetTableDimensions();
-	drawTableContent();
 }
 
 
@@ -612,66 +399,6 @@ function reassignBoundaryValue( knownBoundary, newBoundary, upperBoundary ) {
 	return knownBoundary;
 }
 
-function getElementPosition(el) {
-	let lx=0, ly=0
-    for( ; el != null ; ) {
-		lx += el.offsetLeft;
-		ly += el.offsetTop;
-		el = el.offsetParent;    	
-    }
-    return {x:lx, y:ly};
-}
-
-function addOnMouseWheel(elem, handler) {
-	if (elem.addEventListener) {
-		if ('onwheel' in document) {           // IE9+, FF17+
-			elem.addEventListener("wheel", handler);
-		} else if ('onmousewheel' in document) {           //
-			elem.addEventListener("mousewheel", handler);
-		} else {          // 3.5 <= Firefox < 17
-			elem.addEventListener("MozMousePixelScroll", handler);
-		}
-	} else { // IE8-
-		elem.attachEvent("onmousewheel", handler);
-	}
-}
-
-
-function operToScreen( n ) {
-	return parseInt( n * _tableContentSVGHeight / _visibleHeight + 0.5); 
-} 
-
-
-function calcAndSetTableDimensions(setWidth=true) {
-	if( setWidth ) {
-		let w = 0; 
-		for( let col = 0 ; col < _data.table.length ; col++ ) {
-			w += _data.table[col].width;
-		}	
-		_tableOverallWidth = w;
-		_containerSVG.setAttributeNS(null, 'width', _tableOverallWidth);
-		_tableHeaderSVG.setAttributeNS(null, 'width', _tableOverallWidth);
-		_tableContentSVG.setAttributeNS(null, 'width', _tableOverallWidth);
-		_tableHeaderSVGWidth = _tableOverallWidth;
-		_tableContentSVGWidth = _tableOverallWidth;
-	}
-	_tableContentOverallHeight = operToScreen( _notHiddenOperationsLength );	
-	_containerSVG.setAttributeNS(null, 'height', _tableContentOverallHeight + _tableHeaderSVGHeight);
-	_tableContentSVG.setAttributeNS(null, 'height', _tableContentOverallHeight);
-	_tableContentSVGheight = _tableContentOverallHeight;
-}
-
-
-function calcNotHiddenOperationsLength() {
-	let numVisible = 0;
-	for( let i = 0 ; i < _data.operations.length ; i++ ) {
-		if( _data.operations[i].visible ) {
-			numVisible += 1;
-		}
-	}
-	_notHiddenOperationsLength = numVisible;
-}
-
 
 function newProject() {
 	let cookies = document.cookie.split(";");
@@ -691,88 +418,3 @@ function newProject() {
     }
 	location.reload();
 }
-
-
-function resetCookies() {
-
-	deleteCookie('visibleTop');
-	deleteCookie('visibleHeight');
-
-	for( let cookie = 0 ; cookie < 100000 ; cookie++ ) {
-		let cname = _data.table[cookie].ref+"Position";
-		if( getCookie(cname) != null ) {
-			deleteCookie( cname );
-		} else {
-			break;
-		}
-	}
-	deleteCookie('ganttVisibleWidth'); 	// Saving new values in cookies...
-	deleteCookie('ganttVisibleLeft'); 		// 
-}
-
-
-function restoreExportedSettings(redraw=true) {
-	_visibleTop = 0;
-	_visibleHeight = _settings.readableNumberOfOperations;
-	setCookie('visibleTop', 0);
-	setCookie('visibleHeight', _settings.readableNumberOfOperations);
-
-	copyArrayOfObjects( _data.initialTable, _data.table );
-	for( let cookie = 0 ; cookie < _data.table.length ; cookie++ ) {
-		let cname = _data.table[cookie].ref+"Position";
-		if( getCookie(cname) != null ) {
-			deleteCookie( cname );
-		}
-		cname = _data.table[cookie].ref+"Width";
-		setCookie( cname, _data.table[cookie].width );
-	}
-	if( redraw ) {
-		drawTableHeader(true);
-		drawTableContent(true);
-	}
-}
-
-
-function validateTopAndHeight( top, height ) {
-	let minVisibleHeight = calcMinVisibleHeight();
-	let maxVisibleHeight = calcMaxVisibleHeight();
-	let newVisibleHeight;
-	if( height < minVisibleHeight ) {
-		newVisibleHeight = minVisibleHeight;
-	} else if( height > maxVisibleHeight ) {
-		newVisibleHeight = maxVisibleHeight;
-	} else {
-		newVisibleHeight = height;
-	}
-	if( top < 0 ) {
-		top = 0;
-	}
-	let newVisibleTop = (top + newVisibleHeight) <= _notHiddenOperationsLength ? top : (_notHiddenOperationsLength - newVisibleHeight);
-	return [newVisibleTop, newVisibleHeight ]	
-}
-
-
-function zoomReadable(e) {
-	zoomR( false );
-}
-
-function zoom100(e) {
-	zoomR( true );
-}
-
-function zoomR( zoomH100 = true ) {
-	if( zoomH100 ) {
-		let th = validateTopAndHeight( 0, _settings.maxNumberOfOperationOnScreen );
-		_visibleTop = th[0];
-		_visibleHeight = th[1];
-
-	} else {
-		let newZoom = calculateHorizontalZoomByVerticalZoom( 0, _settings.readableNumberOfOperations );
-		_visibleTop = newZoom[0];
-		_visibleHeight = newZoom[1];
-	}
-
-	displayYZoomFactor();
-	drawTableContent();		
-}
-

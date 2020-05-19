@@ -3,50 +3,50 @@
 #include "helpers.h"                                                        
 
 
-	void mimeSetType(char *fn, char *mime_buf, int mime_buf_size) {
-		int l = strlen(fn);
-		if (l > 4 && (tolower(fn[l-1]) == 's' && tolower(fn[l-2]) == 's' && tolower(fn[l-3]) == 'c' && fn[l-4] == '.')) {
-			strcpy(mime_buf, "text/css; charset=utf-8"); 	// .css
-		} else if( (l > 5 && tolower(fn[l-1]) == 'n' && tolower(fn[l-2]) == 'o' && tolower(fn[l-3]) == 's' && tolower(fn[l-4]) == 'j' && fn[l-5] == '.') ) {
-			strcpy(mime_buf, "text/json; charset=utf-8"); 	// .json
-		} else if( (l > 5 && tolower(fn[l-1]) == 'g' && tolower(fn[l-2]) == 'e' && tolower(fn[l-3]) == 'p' && tolower(fn[l-4]) == 'j' && fn[l-5] == '.') ) {
-			strcpy(mime_buf, "text/jpeg"); 	// .jpeg
-		} else if( (l > 4 && tolower(fn[l-1]) == 'g' && tolower(fn[l-2]) == 'p' && tolower(fn[l-3]) == 'j' && fn[l-4] == '.') ) {
-			strcpy(mime_buf, "text/jpeg"); 	// .jpg
-		} else if( (l > 4 && tolower(fn[l-1]) == 'g' && tolower(fn[l-2]) == 'n' && tolower(fn[l-3]) == 'p' && fn[l-4] == '.') ) {
-			strcpy(mime_buf, "text/png"); 	// .jpg
-		} else if( (l > 4 && tolower(fn[l-1]) == 'f' && tolower(fn[l-2]) == 'i' && tolower(fn[l-3]) == 'g' && fn[l-4] == '.') ) {
-			strcpy(mime_buf, "text/gif"); 	// .jpg
-		} else if( (l > 5 && tolower(fn[l-1]) == 'f' && tolower(fn[l-2]) == 'f' && tolower(fn[l-3]) == 'i' && tolower(fn[l-4]) == 't' && fn[l-5] == '.') ) {
-			strcpy(mime_buf, "text/tiff"); 	// .json
-		} else if( (l > 4 && tolower(fn[l-1]) == 'f' && tolower(fn[l-2]) == 'i' && tolower(fn[l-3]) == 't' && fn[l-4] == '.') ) {
-			strcpy(mime_buf, "text/tif"); 	// .jpg
-		} else if( (l > 4 && tolower(fn[l-1]) == 'm' && tolower(fn[l-2]) == 't' && tolower(fn[l-3]) == 'h' && fn[l-4] == '.') ) {
-			strcpy(mime_buf, "text/html; charset=utf-8"); 	// .html
-		} else if( (l > 4 && tolower(fn[l-1]) == 'l' && tolower(fn[l-2]) == 'm' && tolower(fn[l-3]) == 't' && tolower(fn[l-4]) == 'h' && fn[l-5] == '.' ) ) {
-			strcpy(mime_buf, "text/html; charset=utf-8"); 	// .html
-		} else if( (l > 4 && tolower(fn[l-1]) == 't' && tolower(fn[l-2]) == 'x' && tolower(fn[l-3]) == 't' && fn[l-4] == '.') ) {
-			strcpy(mime_buf, "text/plain; charset=utf-8"); 	// .jpg
+void set_mime_type(char *fn, char *mime_buf, int mime_buf_size) {
+	int l = strlen(fn);
+	if (l > 4 && (tolower(fn[l-1]) == 's' && tolower(fn[l-2]) == 's' && tolower(fn[l-3]) == 'c' && fn[l-4] == '.')) {
+		strcpy(mime_buf, "text/css; charset=utf-8"); 	// .css
+	} else if( (l > 5 && tolower(fn[l-1]) == 'n' && tolower(fn[l-2]) == 'o' && tolower(fn[l-3]) == 's' && tolower(fn[l-4]) == 'j' && fn[l-5] == '.') ) {
+		strcpy(mime_buf, "text/json; charset=utf-8"); 	// .json
+	} else if( (l > 5 && tolower(fn[l-1]) == 'g' && tolower(fn[l-2]) == 'e' && tolower(fn[l-3]) == 'p' && tolower(fn[l-4]) == 'j' && fn[l-5] == '.') ) {
+		strcpy(mime_buf, "text/jpeg"); 	// .jpeg
+	} else if( (l > 4 && tolower(fn[l-1]) == 'g' && tolower(fn[l-2]) == 'p' && tolower(fn[l-3]) == 'j' && fn[l-4] == '.') ) {
+		strcpy(mime_buf, "text/jpeg"); 	// .jpg
+	} else if( (l > 4 && tolower(fn[l-1]) == 'g' && tolower(fn[l-2]) == 'n' && tolower(fn[l-3]) == 'p' && fn[l-4] == '.') ) {
+		strcpy(mime_buf, "text/png"); 	// .jpg
+	} else if( (l > 4 && tolower(fn[l-1]) == 'f' && tolower(fn[l-2]) == 'i' && tolower(fn[l-3]) == 'g' && fn[l-4] == '.') ) {
+		strcpy(mime_buf, "text/gif"); 	// .jpg
+	} else if( (l > 5 && tolower(fn[l-1]) == 'f' && tolower(fn[l-2]) == 'f' && tolower(fn[l-3]) == 'i' && tolower(fn[l-4]) == 't' && fn[l-5] == '.') ) {
+		strcpy(mime_buf, "text/tiff"); 	// .json
+	} else if( (l > 4 && tolower(fn[l-1]) == 'f' && tolower(fn[l-2]) == 'i' && tolower(fn[l-3]) == 't' && fn[l-4] == '.') ) {
+		strcpy(mime_buf, "text/tif"); 	// .jpg
+	} else if( (l > 4 && tolower(fn[l-1]) == 'm' && tolower(fn[l-2]) == 't' && tolower(fn[l-3]) == 'h' && fn[l-4] == '.') ) {
+		strcpy(mime_buf, "text/html; charset=utf-8"); 	// .html
+	} else if( (l > 4 && tolower(fn[l-1]) == 'l' && tolower(fn[l-2]) == 'm' && tolower(fn[l-3]) == 't' && tolower(fn[l-4]) == 'h' && fn[l-5] == '.' ) ) {
+		strcpy(mime_buf, "text/html; charset=utf-8"); 	// .html
+	} else if( (l > 4 && tolower(fn[l-1]) == 't' && tolower(fn[l-2]) == 'x' && tolower(fn[l-3]) == 't' && fn[l-4] == '.') ) {
+		strcpy(mime_buf, "text/plain; charset=utf-8"); 	// .jpg
+	} else {
+		strcpy(mime_buf, "text/html; charset=utf-8");
+	}
+}
+
+void create_cookie( char *sessId, char *user, char *cookie_buf, unsigned int cookie_buf_size ) {
+	if (sessId == nullptr) {
+		sprintf(cookie_buf, "Set-Cookie: sessid=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT\r\nSet-Cookie: user=Not Authorized; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT\r\n");
+	}
+	else {
+		if( strlen(user) == 0 ) {
+			sprintf(cookie_buf, "Set-Cookie: sessid=%s; path=/;\r\n", sessId);
 		} else {
-			strcpy(mime_buf, "text/html; charset=utf-8");
+			sprintf(cookie_buf, "Set-Cookie: sessid=%s; path=/;\r\nSet-Cookie: user=%s; path=/;\r\n", sessId, user);
 		}
 	}
-
-	void create_cookie( char *sessId, char *user, char *cookie_buf, unsigned int cookie_buf_size ) {
-		if (sessId == nullptr) {
-			sprintf(cookie_buf, "Set-Cookie: sessid=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT\r\nSet-Cookie: user=Not Authorized; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT\r\n");
-		}
-		else {
-			if( strlen(user) == 0 ) {
-				sprintf(cookie_buf, "Set-Cookie: sessid=%s; path=/;\r\n", sessId);
-			} else {
-				sprintf(cookie_buf, "Set-Cookie: sessid=%s; path=/;\r\nSet-Cookie: user=%s; path=/;\r\n", sessId, user);
-			}
-		}
-	}
+}
 
 
-int getUriToServe(char *b, char *uri_buf, int uri_buf_size, bool *is_get, char *get_buf, int get_buf_size, char **post, bool *is_options) {
+int get_uri_to_serve(char *b, char *uri_buf, int uri_buf_size, bool *is_get, char *get_buf, int get_buf_size, char **post, bool *is_options) {
 	int b_len = strlen(b);
 
 	*is_get = false;
@@ -92,7 +92,6 @@ int getUriToServe(char *b, char *uri_buf, int uri_buf_size, bool *is_get, char *
 			uri_index = i+7;
 			*is_options = true;
 		}
-
 	}
 	if( uri_index == -1 ) {
 		return -1;

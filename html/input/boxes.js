@@ -1,4 +1,4 @@
-_blackOutBoxDiv=null;
+var	_blackOutBoxDiv=null;
 
 var	_messageBoxDiv=null;
 var	_messageBoxTextDiv=null;
@@ -12,9 +12,6 @@ var	_editBoxDiv=null;
 var	_editBoxDetailsElem=null;
 var _editBoxDateFieldCurrentlyBeingEdited=null;
 
-var _blackoutImageBoxDiv=null;
-var	_imageBoxDiv=null;
-var	_imageBoxContentsDiv=null;
 
 function displayConfirmationBox( message, okFunction=null ) {
 	_blackOutBoxDiv = document.getElementById("blackOutBox");
@@ -58,54 +55,25 @@ function hideMessageBox() {
 	_messageBoxDiv.style.display = 'none';
 }
 
-
-function displayImageBox( contents ) {
-	_imageBoxContentsDiv.style.width = parseInt(window.innerWidth * 0.75).toString() + 'px';
-	_imageBoxContentsDiv.style.height = parseInt(window.innerHeight * 0.75).toString() + 'px';
-
-	_blackoutImageBoxDiv.style.display='block';
-	_imageBoxDiv.style.display='table';	
-	_imageBoxContentsDiv.innerHTML = contents;
-}
-
-
-function isImageBoxDisplayed() {
-	return (_imageBoxDiv.style.display !== 'none' ) ? true : false;
-}
-
-
-function hideImageBox() {
-	_blackoutImageBoxDiv.style.display = 'none';
-	_imageBoxDiv.style.display='none';	
-	_imageBoxContentsDiv.innerHTML = '';
-}
-
-
 function displayEditBox() {
 	_blackOutBoxDiv.style.display='block';	
 	_editBoxDiv.style.display = 'table';
 }
-
-
 function hideEditBox() {
 	_blackOutBoxDiv.style.display='none';	
 	_editBoxDiv.style.display = 'none';
 	document.getElementById('editBoxMessage').innerText = '';			
 	calendarCancel();
-	hideTooltip();
 }
 
 
-function validateEditFieldAndFocusIfFailed(input, type, format) { // To make sure data entered are valid...
-	let msgElemId = document.getElementById('editBoxMessage');
-	let v = validateEditField( input, type, format );
+function validateEditFieldAndFocusIfFailed(input, type) { // To make sure data entered are valid...
+	let v = validateEditField( input, type );
 	if( !v.ok ) {
-		msgElemId.innerText = v.message;
+		document.getElementById('editBoxMessage').innerText = v.message;
 		input.focus();				
-		displayTooltip(v.message, input, _editBoxDiv);
 		return false;
 	}
-	msgElemId.innerText = '';
 	return true;
 }
 
@@ -115,15 +83,11 @@ function createEditBoxInputs() {
 	_editBoxDiv = document.getElementById('editBox');			
 	_editBoxDetailsElem = document.getElementById('editBoxDetails');			
 
-	_blackoutImageBoxDiv = document.getElementById("blackOutImageBox");
-	_imageBoxDiv = document.getElementById("imageBox");
-	_imageBoxContentsDiv = document.getElementById("imageBoxContents");
-
 	let container = document.getElementById('editBoxInputs');
 	if( !container ) {
 		return;
 	}
-	//container.style.height = '100%';
+	container.style.height = '100%';
 	for( let iE = 0 ; iE < _data.editables.length ; iE++ ) {
 		let ref = _data.editables[iE].ref;
 
@@ -148,7 +112,7 @@ function createEditBoxInputs() {
 		}
 		input.id = 'editBoxInput' + ref;
 		input.onfocus = function(e) { _editBoxDateFieldCurrentlyBeingEdited = this; };
-		input.onblur = function(e) { validateEditFieldAndFocusIfFailed( this, _data.editables[iE].type, _data.editables[iE].format ); };
+		input.onblur = function(e) { validateEditFieldAndFocusIfFailed( this, _data.editables[iE].type ); };
 
 		if( _data.editables[iE].type == 'datetime' ) {	// A DateTime field requires a calendar 
 			input.className = 'editBoxInputDateTime'; 
@@ -177,17 +141,11 @@ function createEditBoxInputs() {
 	window.addEventListener( "keyup", onEditBoxKey );
 }
 
-
 function onEditBoxKey(event) {
 	if( _editBoxDiv.style.display !== 'none' ) {
 		event.preventDefault();
 		if( event.keyCode == 27 ) {
-			if( isImageBoxDisplayed() ) {
-				hideImageBox();
-				
-			} else {
-				hideEditBox();
-			}
+			hideEditBox();
 		}			
 	}
 }
@@ -198,7 +156,7 @@ function callCalendarForEditBox( input, container, indexInEditables ) {
 	if( d !== null ) {
 		_editBoxDateFieldCurrentlyBeingEdited = input;
 		setCalendarFormat( _data.editables[indexInEditables].format );	// '1' - date and time, '0' - date only
-		calendar( container, updateEditBoxWithCalendarChoice, 20, 20, d.date, _texts[_lang].monthNames );
+		calendar( container, updateEditBoxWithCalendarChoice, 24, 24, d.date, _texts[_lang].monthNames );
 	}
 }
 
@@ -227,15 +185,17 @@ function displayEditBoxWithData( id ) {
 		let ref = _data.editables[iE].ref;
 		let elem = document.getElementById( "editBoxInput" + ref ); // An element to input new value into
 		if( elem ) {
-			let valueSet = false;
-			elem.value = _data.operations[i][ ref ];
-			if( _data.editables[iE].type === 'datetime' ) {
-				elem.value = adjustDateTimeToFormat( elem.value, _data.editables[iE].format );
-			}
+			let valueToSet = _data.operations[i][ ref ];
+			if( valueToSet !== null ) {
+				if( _data.refSettings[ref].type === 'datetime' ) {
+					valueToSet = adjustDateTimeToFullFormat( valueToSet );
+				}
+				elem.value = valueToSet;
+			}				
 
-			if( ref === 'Start' || ref === 'Fin' ) { // If this is a "Start" or a "Fin" field changed, recalculation of several other ones is required...
+			if( ref === 'Start' || ref === 'Fin' ) { // If this is a "Start" or "Fin" field changed, recalculation of several other ones is required...
 				elem.onblur = function(e) {
-					if( !validateEditFieldAndFocusIfFailed( this, 'datetime', _data.editables[iE].format ) ) {
+					if( !validateEditFieldAndFocusIfFailed( this, 'datetime') ) {
 						return;
 					}
 					if( validateStartAndFinDates() == 0 ) {
@@ -322,9 +282,11 @@ function saveUserDataFromEditBox() {
 	for( let iE = 0 ; iE < _data.editables.length ; iE++ ) {
 		let ref = _data.editables[iE].ref;
 		let input = document.getElementById('editBoxInput' + ref);
-		let ok = validateEditFieldAndFocusIfFailed( input, _data.editables[iE].type, _data.editables[iE].format );
-		if( !ok ) {
-			return;
+		let v = validateEditField( input, _data.editables[iE].type );
+		if( !v.ok ) {
+			document.getElementById('editBoxMessage').innerText = v.message;
+			input.focus();				
+			return; // If invalid data found - nothing happens...
 		}
 	}
 	if( validateStartAndFinDates() == 0 ) {
@@ -351,20 +313,15 @@ function saveUserDataFromEditBox() {
 		        	return;
 				}
 
-		        	let i = _editBoxOperationIndex;
-					for( let iE = 0 ; iE < _data.editables.length ; iE++ ) { // For all editable fields in the table...
-						let ref = _data.editables[iE].ref;
-						let elem = document.getElementById( 'editBoxInput' + ref ); // ... retrieving the element that stores a new value.
-						_data.operations[i][ ref ] = elem.value; // Reading the value (possibly) changed.
-						for( let col = 0 ; col < _data.table.length ; col++ ) { // Changing the value in the table...
-							if( _data.table[col].ref == ref ) {
-								writeNewValueFromInputElemIntoTable( elem.value, i, col, ref );								
-								break;
-							}
-						}
-					}
-				    hideEditBox();
-					ifSynchronizedCheck();
+	        	let i = _editBoxOperationIndex;
+				for( let iE = 0 ; iE < _data.editables.length ; iE++ ) { // For all editable fields in the table...
+					let ref = _data.editables[iE].ref;
+					let elem = document.getElementById( 'editBoxInput' + ref ); // ... retrieving the element that stores a new value.
+					_data.operations[i][ ref ] = elem.value; // Reading the value (possibly) changed.
+					writeNewValueFromInputElemIntoTable( elem.value, i, ref );								
+				}
+		        hideEditBox();
+				ifSynchronizedCheck();
 		    }
 	    }
 	};
@@ -374,17 +331,33 @@ function saveUserDataFromEditBox() {
 		return;
 	} 
 
-	let userData = createUserDataObjectToSendAfterEditing(_editBoxOperationIndex);
+	let userData = createUserDataObjectToSendAfterEditingInBox(_editBoxOperationIndex);
 	if( userData ) {
 		xmlhttp.open("POST", _requests.save, true);
 		xmlhttp.setRequestHeader("Cache-Control", "no-cache");
 		xmlhttp.setRequestHeader('X-Requested-With', 'XMLHttpRequest');		
 		//xmlhttp.setRequestHeader('Content-type', 'application/json');		
 		//xmlhttp.setRequestHeader("Content-type", "plain/text" ); //"application/x-www-form-urlencoded");
-		// !!!! OLD VERSION xmlhttp.send( userData );		
-		xmlhttp.send( JSON.stringify(userData) );		
+		xmlhttp.send( userData );		
 		document.getElementById('editBoxMessage').innerText = _texts[_lang].waitSaveUserDataText; // Displaying the "wait" message. 
 	}
+}
+
+
+function isEditBoxInputsChanged() {
+	let bChanged = false;
+
+	for( let iE = 0 ; iE < _data.editables.length ; iE++ ) {
+		let ref = _data.editables[iE].ref;
+		let elem = document.getElementById( 'editBoxInput' + ref );
+		if( elem ) {
+			if( elem.value != _data.operations[_editBoxOperationIndex][ref] ) {
+				bChanged = true;
+				break;
+			}
+		}
+	}		
+	return bChanged;
 }
 
 
@@ -410,8 +383,6 @@ function validateStartAndFinDates() {
 	let finY = finDate.date.getYear()+1900;
 	if( startY < 1900 || startY > 2500 || finY < 1900 || finY > 2500 || (startDate.timeInSeconds > finDate.timeInSeconds) ) {
 		if( _editBoxDateFieldCurrentlyBeingEdited ) { 
-			document.getElementById('editBoxMessage').innerText = _texts[_lang].datetimeStartFinError;
-			displayTooltip(_texts[_lang].datetimeStartFinError, _editBoxDateFieldCurrentlyBeingEdited. _editBoxDiv);  
 			_editBoxDateFieldCurrentlyBeingEdited.focus();
 		}
 		return 0;						
@@ -421,20 +392,19 @@ function validateStartAndFinDates() {
 }					
 
 
-function validateEditField( input, type, format=0, allowedEmpty=false ) {
-	let r = { ok:false, message:'ERROR!', newValue:null };
+
+function validateEditField( input, type, allowedEmpty=true ) {
+	let r = { ok:false, message:'ERROR!' };
 
 	let value = input.value;
 
-	let pattern = new RegExp("[^ ]");
-	if( !pattern.test(value) ) {
-		if( allowedEmpty ) {
+	if( allowedEmpty ) {
+		let pattern = new RegExp("[^ ]");
+		if( !pattern.test(value) ) {
 			r.ok = true;
-			r.message = '';
-		} else {
-    		r.message = _texts[_lang].emptyFieldError;
+			r.message = 'EMPTY';
+			return r;
 		}
-		return r;
 	}
 
 	if( type === 'datetime' ) {
@@ -448,11 +418,6 @@ function validateEditField( input, type, format=0, allowedEmpty=false ) {
 		if( d == null ) {
     		r.message = _texts[_lang].datetimeError;
 			return r;
-		}
-		let newValue = adjustDateTimeToFormat( value, format ); 	// Adjusting the date to a format specified
-		if( newValue !== value ) {
-			input.value = newValue;
-			r.newValue = newValue;
 		}
 	} else if( type === 'int' ) {
 		let pattern = new RegExp("[^ 0-9]");
@@ -499,8 +464,8 @@ function getCalendarFormat() {
 }
 
 
-function createUserDataObjectToSendAfterEditing( i ) {
-    //let formData = new FormData();
+function createUserDataObjectToSendAfterEditingInBox( i ) {
+    let formData = new FormData();
 
 	let userData = {};
 	userData[ 'Level' ] = _data.operations[i]['Level'];			
@@ -508,8 +473,7 @@ function createUserDataObjectToSendAfterEditing( i ) {
 		let ref = _data.editables[iE].ref;
 		let elem = document.getElementById( 'editBoxInput' + ref );
 		let value = elem.value;
-		userData[ ref ] = value;
-		//console.log(JSON.stringify(userData));
+		userData[ ref ] = value; //console.log(JSON.stringify(userData));
 	}
 
 	userData["Code"] = _data.operations[i].Code;
@@ -520,8 +484,34 @@ function createUserDataObjectToSendAfterEditing( i ) {
 	userData["__UserName"] = _userName;
 	userData["__WebApp"] = "input";
 	return userData;
-    //formData.append("data", JSON.stringify(userData));  
-	//return formData;
+}
+
+
+function searchParentOperationIfAssignmentOrTeam(i) {
+	let parentOperation='';
+	if( _data.operations[i].Level == 'A' ) { 	// It is an assignment - searching for parent
+		if( _data.operations[i].parents.length > 0 ) {
+			let parentIndex = _data.operations[i].parents[0];
+			if( _data.operations[parentIndex].Level === null ) { 	// It is an operation
+				parentOperation = _data.operations[parentIndex].Code;
+			} else if( _data.operations[parentIndex].Level == 'T' ) { 	// It is a team
+				if( _data.operations[i].parents.length > 1 ) {
+					let parentOfParentIndex = _data.operations[i].parents[1];
+					if( _dataOperations[parentOfParentIndex].Level === null ) { // It is an operation
+						parentOperation = _data.operations[parentOrParentIndex].Code;
+					}
+				}	
+			}				
+		}
+	} else if( _data.operations[i].Level == 'T' ) { 	// It is a team - searching for parent
+		if( _data.operations[i].parents.length > 0 ) {
+			let parentIndex = _data.operations[i].parents[0];
+			if( _data.operations[parentIndex].Level === null ) { 	// It is an operation
+				parentOperation = _data.operations[parentIndex].Code;
+			}
+		}
+	}
+	return parentOperation;
 }
 
 
@@ -746,37 +736,6 @@ function recalculateDurRestAfterDurDoneChanged( durDoneEntered, i, isItEditBox=f
 } 
 
 
-function writeNewValueFromInputElemIntoTable( inputElemValue, i, col, ref ) {
-	let destElem = document.getElementById( 'tableColumn'+col+'Row'+i );
-
-	let updated;
-	if( _data.operations[i][ref] != inputElemValue ) {
-		destElem.setAttributeNS( null, 'font-style', "italic" );
-		destElem.setAttributeNS( null, 'font-weight', "bold" );
-		updated = ''; //updated = '✎';
-	} else { // If user re-entered the old value
-		destElem.setAttributeNS( null, 'font-style', "normal" );										
-		destElem.setAttributeNS( null, 'font-weight', "normal" );
-		updated = '';
-	}
-
-	if( ref == 'Name') {
-		let hrh = _data.operations[i].parents.length;
-		destElem.childNodes[0].nodeValue = updated + spacesToPadNameAccordingToHierarchy(hrh) + inputElemValue;
-	}
-	else { // Shifting according to hierarchy if it is a name
-		if( _data.table[col].type == 'float' ) {
-			let valueToTrim = parseFloat(inputElemValue);
-			if( !isNaN(valueToTrim) && typeof(_data.table[col].format) !== 'undefined' ) {
-				inputElemValue = valueToTrim.toFixed(_data.table[col].format);
-			}
-		}
-		destElem.childNodes[0].nodeValue = updated + inputElemValue;
-	}
-}
-
-
-
 function formatTitleTextContent( i, html=false ) {
 	let textContent = "";
 	let endl = ( !html ) ? "\r\n" : "<br/>";
@@ -787,84 +746,64 @@ function formatTitleTextContent( i, html=false ) {
 	} else {
 		opName = opName + endl;
 	}
-	let opLevel = "";
-	if( _data.operations[i]['Level'] !== null ) {
-		let opLevelString = _data.operations[i]['Level'].toString();
-		if( opLevelString.length > 0 ) {
-			opLevel = " [" + opLevelString + "]" + endl;
-		} 
-	}
 	let opCode = _data.operations[i].Code;
 	if( html ) {
-		opCode = "<b>" + opCode + opLevel + "</b>" + endl;
+		opCode = "<b>" + opCode + "</b>" + endl;
 	} else {
-		opCode = opCode + opLevel + endl + "---------------------------------------" + endl;
+		opCode = opCode + endl + "---------------------------------------" + endl;
 	}
-	textContent = opName + opCode + opLevel;
+	textContent = opName + opCode;
 
 	for( let col=1 ; col < _data.table.length ; col++ ) {
 		if( !_data.table[col].visible ) {
 			continue;
 		}		
-		if( _data.table[col].ref === 'Name' || _data.table[col].ref === 'Code' || _data.table[col].ref === 'Level' || _data.table[col].type === 'signal' ) {
+		if( _data.table[col].ref === 'Name' ) {
+			continue;
+		}
+		if( _data.table[col].ref === 'Code' ) {
+			continue;
+		}
+		if( _data.table[col].type === 'signal' ) {
 			continue;
 		}
 		let ref = _data.table[col].ref;
 
-		let content = _data.operations[i][ref];
+		let content = _data.operations[i][ref];  	
+		if( 'userData' in _data.operations[i] ) {
+			if( ref in _data.operations[i].userData ) {
+				if( _data.operations[i].userData[ref] != _data.operations[i][ref] ) {
+					let newValue = _data.operations[i].userData[ref];
+					if( html ) {
+						if( content === 'undefined' || content === null || content === '' ) {
+							content='';
+						} else {
+							content = "<span style='text-decoration:line-through;'>" + content + "</span>"
+						}
+						let color = ('colorFont' in _data.operations[i]) ? _data.operations[i].colorFont : _settings.editedColor;					
+						newValue = "<span style='font-style:italic; color:"+color+"'>"+newValue+"</span>"; // '✎'
+					} else {
+						if( content === 'undefined' || content === null ) {
+							content = '';
+						}						
+					}
+					content += " " + newValue; // " => " + newValue;
+				}
+			}
+		}
+		// let name = _texts[_lang][ref];
 		let name = _data.table[col].name;
 		if( html ) {
 			name = "<span style='color:#7f7f7f;'>" + name + "</span>";
 		}
-		if( content === 'undefined' || content === null ) {
-			content = '';
+		if( content === 'undefined' || content === null || content === '' ) {
+			content = '&#8230;';
 		}
-		textContent += name + ": " + content + endl;
+		if( html ) {
+			textContent += "<div>" + name + ": " + content + "</div>";
+		} else {
+			textContent += name + ": " + content + endl;
+		}
 	}	
 	return textContent;
-}
-
-
-function isEditBoxInputsChanged() {
-	let bChanged = false;
-
-	for( let iE = 0 ; iE < _data.editables.length ; iE++ ) {
-		let ref = _data.editables[iE].ref;
-		let elem = document.getElementById( 'editBoxInput' + ref );
-		if( elem ) {
-			if( elem.value != _data.operations[_editBoxOperationIndex][ref] ) {
-				bChanged = true;
-				break;
-			}
-		}
-	}		
-	return bChanged;
-}
-
-
-function searchParentOperationIfAssignmentOrTeam(i) {
-	let parentOperation='';
-	if( _data.operations[i].Level == 'A' ) { 	// It is an assignment - searching for parent
-		if( _data.operations[i].parents.length > 0 ) {
-			let parentIndex = _data.operations[i].parents[0];
-			if( _data.operations[parentIndex].Level === null ) { 	// It is an operation
-				parentOperation = _data.operations[parentIndex].Code;
-			} else if( _data.operations[parentIndex].Level == 'T' ) { 	// It is a team
-				if( _data.operations[i].parents.length > 1 ) {
-					let parentOfParentIndex = _data.operations[i].parents[1];
-					if( _dataOperations[parentOfParentIndex].Level === null ) { // It is an operation
-						parentOperation = _data.operations[parentOrParentIndex].Code;
-					}
-				}	
-			}				
-		}
-	} else if( _data.operations[i].Level == 'T' ) { 	// It is a team - searching for parent
-		if( _data.operations[i].parents.length > 0 ) {
-			let parentIndex = _data.operations[i].parents[0];
-			if( _data.operations[parentIndex].Level === null ) { 	// It is an operation
-				parentOperation = _data.operations[parentIndex].Code;
-			}
-		}
-	}
-	return parentOperation;
 }
