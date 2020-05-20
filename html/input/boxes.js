@@ -317,8 +317,8 @@ function saveUserDataFromEditBox() {
 				for( let iE = 0 ; iE < _data.editables.length ; iE++ ) { // For all editable fields in the table...
 					let ref = _data.editables[iE].ref;
 					let elem = document.getElementById( 'editBoxInput' + ref ); // ... retrieving the element that stores a new value.
-					_data.operations[i][ ref ] = elem.value; // Reading the value (possibly) changed.
 					writeNewValueFromInputElemIntoTable( elem.value, i, ref );								
+					_data.operations[i][ ref ] = elem.value; // Reading the value (possibly) changed.
 				}
 		        hideEditBox();
 				ifSynchronizedCheck();
@@ -755,8 +755,9 @@ function formatTitleTextContent( i, html=false ) {
 	textContent = opName + opCode;
 
 	for( let col=1 ; col < _data.table.length ; col++ ) {
-		if( !_data.table[col].visible ) {
-			continue;
+		if( 'visible' in _data.table[col] ) {
+			if( !_data.table[col].visible )
+				continue;
 		}		
 		if( _data.table[col].ref === 'Name' ) {
 			continue;
@@ -770,28 +771,6 @@ function formatTitleTextContent( i, html=false ) {
 		let ref = _data.table[col].ref;
 
 		let content = _data.operations[i][ref];  	
-		if( 'userData' in _data.operations[i] ) {
-			if( ref in _data.operations[i].userData ) {
-				if( _data.operations[i].userData[ref] != _data.operations[i][ref] ) {
-					let newValue = _data.operations[i].userData[ref];
-					if( html ) {
-						if( content === 'undefined' || content === null || content === '' ) {
-							content='';
-						} else {
-							content = "<span style='text-decoration:line-through;'>" + content + "</span>"
-						}
-						let color = ('colorFont' in _data.operations[i]) ? _data.operations[i].colorFont : _settings.editedColor;					
-						newValue = "<span style='font-style:italic; color:"+color+"'>"+newValue+"</span>"; // '✎'
-					} else {
-						if( content === 'undefined' || content === null ) {
-							content = '';
-						}						
-					}
-					content += " " + newValue; // " => " + newValue;
-				}
-			}
-		}
-		// let name = _texts[_lang][ref];
 		let name = _data.table[col].name;
 		if( html ) {
 			name = "<span style='color:#7f7f7f;'>" + name + "</span>";

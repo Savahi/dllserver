@@ -297,11 +297,11 @@ function padWithNChars( n, char ) {
 function spacesToPadNameAccordingToHierarchy( hierarchy ) {
 	let s = '';
 	for( let i = 0 ; i < hierarchy ; i++ ) {
-		s += '&#8226;&nbsp;'; //'   '; // figure space: ' ', '·‧', '•', '⁌','|'
+		s += '.'; //'   '; // figure space: ' ', '·‧', '•', '⁌','|'
 	}
-	if( s.length > 0 ) {
-		s = "<span style='color:#7f7f7f; font-size:10px; font-weight:normal;'>" + s + "</span>";
-	}
+	//if( s.length > 0 ) {
+	//	s = "<span style='color:#7f7f7f; font-size:10px; font-weight:normal;'>" + s + "</span>";
+	//}
 	return s;
 }
 
@@ -318,31 +318,6 @@ function addClassToElement( element, className ) {
 	if( classArray.indexOf( className ) == -1 ) {
 		element.className += " " + className;
 	}
-}
-
-function printSVG() {
-	let header = document.getElementById('header');
-	let headerDisplayStyle = header.style.display;
-	header.style.display = 'none';
-
-	let toolbox = document.getElementById('toolbox');
-	let toolboxDisplayStyle = toolbox.style.display;
-	toolbox.style.display = 'none';
-
-	let htmlStyles = window.getComputedStyle(document.querySelector("html"));
-	let headerHeight = htmlStyles.getPropertyValue('--header-height');
-	let toolboxTableHeight = htmlStyles.getPropertyValue('--toolbox-table-height');
-
-	document.documentElement.style.setProperty('--header-height', '2px');
-	document.documentElement.style.setProperty('--toolbox-table-height', '2px');
-
-	window.print(); 
-
-	document.documentElement.style.setProperty('--header-height', headerHeight);
-	document.documentElement.style.setProperty('--toolbox-table-height', toolboxTableHeight);
-
-	header.style.display = headerDisplayStyle;
-	toolbox.style.display = toolboxDisplayStyle;
 }
 
 

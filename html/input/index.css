@@ -2,6 +2,8 @@
 	--header-height:40px;
 	--half-header-height:calc( var(--header-height) / 2 );
 	--header-control-height:calc( var(--header-height) * 0.62 );
+	--header-font-size:0.9em;
+	--header-font-size-sm:0.7em;
 	--data-table-head-font-size:0.9em;
 	--data-table-body-font-size:0.9em;
 	--data-table-body-editable-font-size:0.95em;
@@ -24,34 +26,31 @@
 		background-color:white; scroll-behavior:smooth;
 		font-family:arial; margin:0; padding:0;
 	}
-	
-	div { box-sizing: border-box; margin:0px; padding:0px; }
-	table { box-sizing: border-box; margin:0px; padding:0px; }
-	td { padding:0px; }
-	a {
-		text-decoration:none; color:white;
+	h1 { margin:2% 1% 1% 1%; font-size:140%; color:var(--dark-color); font-variant:small-caps; }
+	* div {
+		box-sizing:border-box; margin:0px; padding:0px; 
 	}
+	* table { box-sizing: border-box; margin:0px; padding:0px; }
+	* td { padding:0px; }
+	* a { text-decoration:none; color:white; }
 
 	#header {
-		width:100%; min-width:100%; margin:0; padding:0; display:block; box-sizing:border-box;
-		border-bottom:2px solid #bfbfbf; 
-		background-image:linear-gradient(to right, rgb(240,240, 240), rgb(230,230,230), rgb(150,150,150));
+		width:100%; min-width:100%; display:block; border-bottom:2px solid #bfbfbf; 
+		background-image:linear-gradient(to right, rgb(40,40, 40), rgb(40,40,40), rgb(150,150,150));
 	}
 	#header::after {
   		content: ""; clear: both; display: table;
 	}
 
 	#headerControls {
-		max-width:20%; margin:0; padding:0; box-sizing:border-box; overflow:hidden;
-		display:inline-block; float:left; text-align:left; height:var(--header-height); 
+		max-width:20%; overflow:hidden; display:inline-block; float:left; text-align:left; height:var(--header-height); 
 	}
 	#headerControls div {
-		float:left; margin:4px 4px 0px 4px;
-		height:var(--header-control-height);
+		float:left; margin:8px 4px 0px 4px; padding:0px; height:var(--header-control-height);
+		border-radius:4px; color: white; background-color:white;
 	}
 	#headerControls div img {
-		border:1px solid white; border-radius:4px; padding:2px;
-		height:var(--header-control-height);
+		margin:0px; height:var(--header-control-height);
 	}
 	#headerControls div:first-child {
 		border:0px;
@@ -59,16 +58,16 @@
 
 	#headerProject {
 		max-width:80%; height:var(--header-height); overflow:hidden; margin:0px; display:block; float:left;
-		padding-left:12px; text-align:left; font-size:11px; color:black;
+		padding-left:12px; text-align:left; color:white;
 	}
 	#headerProjectName {
 		width:100%; height:var(--half-header-height); margin:0px; padding-top:2px; display:inline-block; 
-		white-space:nowrap; text-overflow:ellipsis; text-align:left; font-size:16px;
+		white-space:nowrap; text-overflow:ellipsis; text-align:left; font-size:var(--header-font-size);
 	}
 	#headerProjectUserTimeVersion {
-		width:100%; height:var(--half-header-height); display:inline-block; float:left;
+		width:100%; margin:0; padding:2px; height:var(--half-header-height); display:inline-block; float:left;
 		white-space:nowrap; text-overflow:ellipsis; overflow:hidden;
-		font-family:courier; text-align:left; font-size:11px; margin:0; padding:2px;
+		text-align:left; font-size:var(--header-font-size-sm); 
 	}
 
 	@media screen and (max-width: 800px) {
@@ -88,13 +87,6 @@
 	.page {
 		display:none; width:100%; border:0; margin:0; padding:0; background-color:white;
 	}
-
-	.toolbox div img { 
-		float:left; border:0; display:inline;
-		margin:0px 4px 0px 4px; padding:0px; height:var(--toolbox-img-height); 
-		cursor:pointer; opacity:0.7; 
-	}
-	.toolbox div img:hover { opacity:1.0; }
 
 	#dataTableHead td { 
 		font-size: var(--data-table-head-font-size); 
@@ -118,7 +110,7 @@
 
 	#dataTableBody td.dataTableEditable {
 		cursor:pointer !important; position:relative !important; border-bottom: 1px solid #afafaf !important;  padding-right: 12px !important; 
-		font-size: var(--data-table-body-editable-font-size); font-style: italic !important; 
+		font-size: var(--data-table-body-editable-font-size); 
 	}
 	#dataTableBody td.dataTableEditable .dataTableEditableMark {
 		position: absolute; bottom:0; right:0; font-size: 8px; text-align: right; 
@@ -232,11 +224,6 @@
 		#editBoxInputs input { min-width:100%; }
 	}
 
-
-	h1 { margin:2% 1% 1% 1%; font-size:140%; color:var(--dark-color); font-variant:small-caps; }
-
-	dim { border-color:var(--lightgray-color); color:var(--lightgray-color); }
-
 	.ok-color { color: var(--ok-color); }
 	.cancel-color { color: var(--cancel-color); }
 	.error-color { color: var(--error-color); }	
@@ -269,4 +256,3 @@
 	.helpText div img {
 		display:inline-block; height:20px; position:relative; top:4px;
 	}
-

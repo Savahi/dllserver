@@ -109,16 +109,6 @@ function drawTableContent( init=false, shiftOnly=false ) {
 			let fontWeight = 'normal';
 			let backgroundColor = _data.operations[i].colorBack;
 			let textAlign = 'left';
-			if( 'userData' in _data.operations[i] ) { // If the value has been changed by user and not saved
-				if( ref in _data.operations[i].userData ) {
-					if( _data.operations[i].userData[ref] != content ) {
-						content = _data.operations[i].userData[ref];
-						fontStyle = "italic";
-						fontWeight = "bold";
-						editedByUser = true;
-					}
-				}
-			}
 			if( typeof(content) === 'undefined' ) {
 				content = '';
 			} else if( content === null ) {
@@ -158,7 +148,8 @@ function drawTableContent( init=false, shiftOnly=false ) {
 				}
 			}
 			if( _data.table[col].type !== 'signal' ) {
-				td.innerHTML = content;
+				//td.innerHTML = content;
+				td.appendChild(document.createTextNode(content));
 			} else {
 				td.innerHTML = 	'&#9679';
 			}
@@ -197,21 +188,18 @@ function writeNewValueFromInputElemIntoTable( inputElemValue, i, ref ) {
 	let format = _data.refSettings[ref].format;
 
 	let destElem = document.getElementById( 'tableColumn'+col+'Row'+i );
-
-	let updated;
-	if( _data.operations[i][ref] != inputElemValue ) {
-		destElem.setAttributeNS( null, 'font-style', "italic" );
-		destElem.setAttributeNS( null, 'font-weight', "bold" );
-		updated = ''; //updated = '✎';
-	} else { // If user re-entered the old value
-		destElem.setAttributeNS( null, 'font-style', "normal" );										
-		destElem.setAttributeNS( null, 'font-weight', "normal" );
-		updated = '';
+	if( !('firstChild' in destElem) )
+		return;
+	let contentElem = destElem.firstChild;
+	if( !('nodeValue' in contentElem) )
+		return;
+	if( inputElemValue != contentElem.nodeValue ) {
+		destElem.style.fontStyle = 'italic'; //destElem.style.color = 'blue';
 	}
 
 	if( ref === 'Name') { 	// Shifting according to hierarchy if it is a name
 		let hrh = _data.operations[i].parents.length;
-		destElem.innerHTML = updated + spacesToPadNameAccordingToHierarchy(hrh) + inputElemValue;
+		contentElem.nodeValue = spacesToPadNameAccordingToHierarchy(hrh) + inputElemValue;
 	}
 	else { 
 		if( type === 'float' ) {
@@ -223,7 +211,7 @@ function writeNewValueFromInputElemIntoTable( inputElemValue, i, ref ) {
 		else if( type === 'datetime' ) {
 			inputElemValue = adjustDateTimeToFormat( inputElemValue, format );
 		}				
-		destElem.innerHTML = updated + inputElemValue;
+		contentElem.nodeValue = inputElemValue;
 	}
 }
 
