@@ -4,6 +4,8 @@
 // message_id
 #define SERVER_NOTIFICATION_MESSAGE -1
 
+#define SERVER_LOGIN 1 // authorize user 
+
 #define SERVER_GET_CONTENTS 10 // get list of actions
 
 #define SERVER_GET_GANTT 100

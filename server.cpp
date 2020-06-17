@@ -77,8 +77,7 @@ static int server( void )
 		return 1;
 	}
 	// Creating a socket
-	int listen_socket = socket(addr->ai_family, addr->ai_socktype,
-		addr->ai_protocol);
+	int listen_socket = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
 	if (listen_socket == INVALID_SOCKET) { 		// If failed to create a socket...
 		server_error_message( "Error at socket:\n" + std::to_string( WSAGetLastError() ) );
 		freeaddrinfo(addr);

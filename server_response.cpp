@@ -122,19 +122,32 @@ void server_response( int client_socket, char *socket_request_buf, int socket_re
 	}		
 
 	if( strcmp(uri,"/.login") == 0 ) { 	// A login try?
+        bool logged_in = false;
 		if( post != nullptr ) {
 			get_user_and_pass_from_post( post, post_user, AUTH_USER_MAX_LEN, post_pass, AUTH_USER_MAX_LEN );
-			sess_id = auth_do(post_user, post_pass, users_and_passwords);
-			if( sess_id != nullptr ) { 	// Login try ok - sending sess_id 	
-				user = auth_get_user();
-				sprintf_s( _content_to_serve_buf, _content_to_serve_buf_size, _http_header_template, "text/plain", strlen(sess_id) );
-				strcat_s( _content_to_serve_buf, _content_to_serve_buf_size, sess_id );
-				send(client_socket, _content_to_serve_buf, strlen(_content_to_serve_buf), 0);
-				return;
-			} 
-		}
-		sprintf_s( _content_to_serve_buf, _content_to_serve_buf_size, _http_header_template, "text/plain", strlen(sess_id) );
-		send(client_socket, _content_to_serve_buf, strlen(_content_to_serve_buf), 0);
+    		try {
+	            ServerData sd;
+                sd.user = user;
+                sd.message_id = SERVER_LOGIN;
+                sd.message = post_user;
+		        int callback_return = callback( &sd );
+            	if( sd.sp_response_buf != nullptr && callback_return >= 0 && sd.sp_response_buf_size > 0 ) {
+                    if( sd.sp_response_buf[0] == '1' ) {
+             			sess_id = auth_create_session_id(post_user, post_pass);
+                        if( sess_id != nullptr )
+                            logged_in = true;
+                    }
+                }
+		    } catch (...) {;}
+        }
+        if( logged_in && sess_id != nullptr ) {  	
+		    sprintf_s( _content_to_serve_buf, _content_to_serve_buf_size, _http_header_template, "text/plain", strlen(sess_id) );
+			strcat_s( _content_to_serve_buf, _content_to_serve_buf_size, sess_id );
+			send(client_socket, _content_to_serve_buf, strlen(_content_to_serve_buf), 0);
+        } else {
+    		sprintf_s( _content_to_serve_buf, _content_to_serve_buf_size, _http_header_template, "text/plain", strlen(sess_id) );
+	    	send(client_socket, _content_to_serve_buf, strlen(_content_to_serve_buf), 0);
+        }
 		return;
 	} 
 	

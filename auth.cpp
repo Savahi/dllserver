@@ -57,29 +57,9 @@ bool auth_confirm(char *user, char *sess_id, bool b_update_session, bool b_valid
 }
 
 
-bool auth_check_user_and_password( char *user, char *pass, char *users_and_passwords[] ) {
-	bool pass_ok = false;
-	for( int i = 0 ; users_and_passwords[i] != nullptr ; i+=2 ) {
-		if( !( strcmp(users_and_passwords[i], user ) == 0) ) {
-			continue;
-		}
-		if( !( strcmp(users_and_passwords[i+1], pass ) == 0) ) {
-			continue;
-		}
-		if( strlen(user) > _sess_user_size ) {
-			continue;
-		}
-		pass_ok = true;
-		break;
-	}		
-	return pass_ok;
-}
-
-
-char *auth_do( char *user, char *pass, char *users_and_passwords[], int *error_code ) {
+char *auth_create_session_id( char *user, char *pass, int *error_code ) {
 	char *r = nullptr;
 	
-	bool pass_ok = 	auth_check_user_and_password( user, pass, users_and_passwords );
 	if( pass_ok ) {
 		char sess_id[_sess_id_size+1];
 		generate_session_id( user, sess_id, _sess_id_size );

@@ -11,8 +11,7 @@
 #define AUTH_SESS_ID_LEN 40
 #define AUTH_USER_MAX_LEN 20
 	
-bool auth_check_user_and_password( char *user, char *pass, char *users_and_passwords[] );
-char *auth_do(char *user, char *pass, char **users_and_passwords, int *error_code=nullptr);
+char *auth_create_session_id(char *user, char *pass, int *error_code=nullptr);
 bool auth_confirm(char *user, char *sess_id, bool b_update_session=true, bool b_validate_sess_id_only=true);
 bool auth_logout(char *user, char *sess_id);
 
